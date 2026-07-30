@@ -1,0 +1,9 @@
+{
+  "date": "2026-07-31",
+  "framework": "Vinext / Next.js App Router",
+  "font_stack": "Cormorant Garamond + IBM Plex Sans via next/font",
+  "palette": "OKLCH tokens in tokens.css",
+  "motion": "CSS-only, motion-cut Atelier stance",
+  "spacing": "4pt semantic scale",
+  "source": "fresh starter scaffold"
+}
