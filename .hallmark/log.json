@@ -1,5 +1,23 @@
 [
   {
+    "date": "2026-08-01",
+    "scope": "app",
+    "macrostructure": "Marquee Hero / Photographic Purchase Studio / Bento Operations",
+    "variation": "N10 scroll-morph navigation, service selector, persisted checkout and booking states",
+    "theme": "Studio Mineral",
+    "enrichment": "Existing treatment photography with restrained material overlays",
+    "brief": "Handoff refinement with production-like interactions and connected storefront-to-admin flows"
+  },
+  {
+    "date": "2026-08-01",
+    "scope": "app",
+    "macrostructure": "Marquee Hero / Photographic Purchase Studio / Bento Operations",
+    "variation": "N5 floating glass navigation, below-fold decision dock, Ft5 statement footer",
+    "theme": "Studio Mineral",
+    "enrichment": "Liquid glass material hierarchy without decorative enrichment",
+    "brief": "Full luxury liquid-glass rebuild for real spa customers buying products and booking services"
+  },
+  {
     "date": "2026-07-31",
     "macrostructure": "Catalogue",
     "theme": "Atelier",

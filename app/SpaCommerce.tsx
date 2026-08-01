@@ -4,11 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
+  BadgeCheck,
+  Banknote,
   CalendarDays,
   Check,
   ChevronDown,
   CircleUserRound,
   Clock3,
+  CreditCard,
   Menu,
   MessageCircle,
   Minus,
@@ -22,6 +25,12 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { articles, formatMoney, products, services, type Product } from "./data";
+import {
+  commerceStorageKeys,
+  createCommerceId,
+  prependCommerceAppointment,
+  prependCommerceOrder,
+} from "./commerce-storage";
 
 type CartLine = {
   product: Product;
@@ -35,6 +44,7 @@ type ToastMessage = {
 };
 
 type BookingState = "idle" | "submitting" | "confirmed";
+type CheckoutState = "cart" | "details" | "processing" | "confirmed";
 
 const skinOptions = ["Tất cả", "Mọi loại da", "Da khô", "Da dầu", "Da nhạy cảm"];
 const concernOptions = [
@@ -47,6 +57,7 @@ const concernOptions = [
 
 export default function SpaCommerce() {
   const [query, setQuery] = useState("");
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>(products);
   const [skin, setSkin] = useState("Tất cả");
   const [concern, setConcern] = useState("Tất cả nhu cầu");
   const [price, setPrice] = useState("all");
@@ -58,7 +69,8 @@ export default function SpaCommerce() {
   const [chatOpen, setChatOpen] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [couponValid, setCouponValid] = useState(false);
-  const [checkingOut, setCheckingOut] = useState(false);
+  const [checkoutState, setCheckoutState] = useState<CheckoutState>("cart");
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [announcementVisible, setAnnouncementVisible] = useState(true);
   const [navCompact, setNavCompact] = useState(false);
@@ -67,6 +79,8 @@ export default function SpaCommerce() {
   const [bagPulse, setBagPulse] = useState(false);
   const [chatTyping, setChatTyping] = useState(false);
   const [bookingState, setBookingState] = useState<BookingState>("idle");
+  const [bookingReference, setBookingReference] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState(services[0].id);
   const [messages, setMessages] = useState([
     {
       from: "advisor",
@@ -96,9 +110,22 @@ export default function SpaCommerce() {
   const checkoutTimeout = useRef<number | null>(null);
   const chatTimeout = useRef<number | null>(null);
   const bookingTimeout = useRef<number | null>(null);
-  const bookingConfirmation = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
+    let availableProducts = products;
+    try {
+      const storedInventory: unknown = JSON.parse(
+        window.localStorage.getItem(commerceStorageKeys.inventory) ?? "[]",
+      );
+      if (Array.isArray(storedInventory) && storedInventory.length) {
+        availableProducts = (
+          storedInventory as Array<Product & { visible?: boolean }>
+        ).filter((product) => product.visible !== false);
+      }
+    } catch {
+      window.localStorage.removeItem(commerceStorageKeys.inventory);
+    }
+
     const saved = window.localStorage.getItem("tinh-cart");
     let initialCart: CartLine[] = [];
     if (saved) {
@@ -108,7 +135,9 @@ export default function SpaCommerce() {
         initialCart = parsed.flatMap((candidate) => {
           if (!candidate || typeof candidate !== "object") return [];
           const line = candidate as { id?: unknown; quantity?: unknown };
-          const product = products.find((item) => item.id === Number(line.id));
+          const product = availableProducts.find(
+            (item) => item.id === Number(line.id),
+          );
           const requested = Number(line.quantity);
           if (!product || !Number.isFinite(requested) || requested <= 0) return [];
           return [
@@ -123,6 +152,7 @@ export default function SpaCommerce() {
       }
     }
     const frame = window.requestAnimationFrame(() => {
+      setCatalogProducts(availableProducts);
       setCart(initialCart);
       setCartHydrated(true);
     });
@@ -206,10 +236,6 @@ export default function SpaCommerce() {
     if (chatOpen) messagesEnd.current?.scrollIntoView({ block: "nearest" });
   }, [chatOpen, chatTyping, messages]);
 
-  useEffect(() => {
-    if (bookingState === "confirmed") bookingConfirmation.current?.focus();
-  }, [bookingState]);
-
   useEffect(
     () => () => {
       [
@@ -228,7 +254,7 @@ export default function SpaCommerce() {
 
   const filteredProducts = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi");
-    return products.filter((product) => {
+    return catalogProducts.filter((product) => {
       const matchesSearch =
         !normalized ||
         `${product.name} ${product.category} ${product.concern.join(" ")}`
@@ -246,7 +272,7 @@ export default function SpaCommerce() {
         (price === "over1000" && product.price > 1000000);
       return matchesSearch && matchesSkin && matchesConcern && matchesPrice;
     });
-  }, [concern, price, query, skin]);
+  }, [catalogProducts, concern, price, query, skin]);
 
   const cartCount = cart.reduce((sum, line) => sum + line.quantity, 0);
   const subtotal = cart.reduce(
@@ -275,12 +301,20 @@ export default function SpaCommerce() {
     setMobileOpen(false);
     setMegaOpen(false);
     setChatOpen(false);
+    if (cart.length) {
+      setCheckoutState("cart");
+      setLastOrderId(null);
+    }
     setCartOpen(true);
     window.requestAnimationFrame(() => cartClose.current?.focus());
   };
 
   const closeCart = () => {
     setCartOpen(false);
+    if (checkoutState === "confirmed") {
+      setCheckoutState("cart");
+      setLastOrderId(null);
+    }
     cartTrigger.current?.focus();
   };
 
@@ -404,19 +438,37 @@ export default function SpaCommerce() {
     if (!valid) announce("Mã chưa đúng. Thử TINH10.", "alert");
   };
 
-  const checkout = () => {
+  const submitCheckout = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!cart.length) return;
-    setCheckingOut(true);
+    const form = new FormData(event.currentTarget);
+    const orderId = createCommerceId("DH");
+    const total = subtotal - discount;
+    setCheckoutState("processing");
     if (checkoutTimeout.current !== null) window.clearTimeout(checkoutTimeout.current);
     checkoutTimeout.current = window.setTimeout(() => {
-      setCheckingOut(false);
+      prependCommerceOrder({
+        id: orderId,
+        customer: String(form.get("name") || "").trim(),
+        phone: String(form.get("phone") || "").trim(),
+        address: String(form.get("address") || "").trim(),
+        payment: form.get("payment") === "bank" ? "bank" : "cod",
+        total,
+        status: "Mới",
+        createdAt: new Date().toISOString(),
+        items: cart.map((line) => ({
+          productId: line.product.id,
+          name: line.product.name,
+          quantity: line.quantity,
+          price: line.product.price,
+        })),
+      });
+      setLastOrderId(orderId);
+      setCheckoutState("confirmed");
       setCart([]);
       setCoupon("");
       setCouponValid(false);
-      setCartOpen(false);
-      cartTrigger.current?.focus();
-      announce("Đơn hàng demo đã được tạo để quản trị viên xử lý.");
-    }, 700);
+    }, 760);
   };
 
   const openBooking = () => {
@@ -428,19 +480,42 @@ export default function SpaCommerce() {
         : active;
     closeCommerceSurfaces();
     setBookingState("idle");
+    setBookingReference(null);
     bookingDialog.current?.showModal();
     window.requestAnimationFrame(() => bookingService.current?.focus());
+  };
+
+  const chooseServiceAndBook = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    window.requestAnimationFrame(openBooking);
   };
 
   const submitBooking = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
+    const values = new FormData(form);
+    const serviceId = String(values.get("service") || selectedServiceId);
+    const service = services.find((item) => item.id === serviceId) ?? services[0];
+    const appointmentId = createCommerceId("LH");
     setBookingState("submitting");
     if (bookingTimeout.current !== null) window.clearTimeout(bookingTimeout.current);
     bookingTimeout.current = window.setTimeout(() => {
+      prependCommerceAppointment({
+        id: appointmentId,
+        customer: String(values.get("name") || "").trim(),
+        phone: String(values.get("phone") || "").trim(),
+        serviceId: service.id,
+        service: service.name,
+        date: String(values.get("date") || ""),
+        time: String(values.get("time") || ""),
+        note: String(values.get("note") || "").trim(),
+        status: "Chờ xác nhận",
+        createdAt: new Date().toISOString(),
+      });
+      setBookingReference(appointmentId);
       setBookingState("confirmed");
       form.reset();
-    }, 650);
+    }, 680);
   };
 
   const sendMessage = (event: FormEvent<HTMLFormElement>) => {
@@ -492,7 +567,7 @@ export default function SpaCommerce() {
     setPrice("all");
   };
 
-  const returnFilterFocus = (control: HTMLElement | null) => {
+  const returnFilterFocus = (control: { focus: () => void } | null) => {
     window.requestAnimationFrame(() => control?.focus());
   };
 
@@ -718,13 +793,14 @@ export default function SpaCommerce() {
       />
 
       <main inert={mobileOpen}>
-        <section className="hero">
+        <section className="hero hero-marquee">
           <figure className="hero-media">
             <Image
               src="/hero-treatment.webp"
               alt="Chuyên viên nhỏ serum trong một buổi chăm sóc da tại TĨNH"
               width={1600}
               height={833}
+              unoptimized
               priority
               sizes="100vw"
             />
@@ -733,32 +809,34 @@ export default function SpaCommerce() {
             </figcaption>
           </figure>
           <div className="hero-copy">
-            <div className="hero-register" aria-hidden="true">
-              <span>01</span>
-              <i />
-              <span>TĨNH / 2026</span>
-            </div>
-            <p className="hero-kicker">Mỹ phẩm · Liệu trình · Một hồ sơ da</p>
-            <h1>Một nghi thức, hai cách chăm da.</h1>
-            <p className="hero-lede">
+            <p className="hero-kicker">TĨNH Skin Atelier</p>
+            <h1>Chăm da, không chia đôi.</h1>
+            <p className="hero-service-note">
+              Mỹ phẩm tuyển chọn · Liệu trình theo lịch · Hồ sơ da liền mạch
+            </p>
+          </div>
+        </section>
+
+        <section className="hero-decision" aria-label="Bắt đầu chăm sóc">
+          <div className="hero-decision-copy">
+            <span>Chăm tại nhà × Chăm tại spa</span>
+            <p>
               Mua đúng sản phẩm cho những ngày ở nhà. Đặt đúng liệu trình cho
               những lúc làn da cần một bàn tay có chuyên môn.
             </p>
-            <div className="hero-actions">
-              <a className="primary-action" href="#catalogue">
-                Chọn sản phẩm
-                <ArrowRight size={18} aria-hidden="true" />
-              </a>
-              <button className="text-action" type="button" onClick={openBooking}>
-                Đặt lịch tư vấn
-              </button>
-            </div>
-            <div className="hero-note">
-              <CircleUserRound size={20} aria-hidden="true" />
-              <span>
-                Routine mua tại shop được lưu cùng ghi chú của chuyên viên.
-              </span>
-            </div>
+          </div>
+          <div className="hero-actions">
+            <a className="primary-action" href="#catalogue">
+              Chọn sản phẩm
+              <ArrowRight size={18} aria-hidden="true" />
+            </a>
+            <button className="text-action" type="button" onClick={openBooking}>
+              Đặt lịch tư vấn
+            </button>
+          </div>
+          <div className="hero-note">
+            <CircleUserRound size={20} aria-hidden="true" />
+            <span>Routine mua tại shop được lưu cùng ghi chú của chuyên viên.</span>
           </div>
         </section>
 
@@ -789,7 +867,7 @@ export default function SpaCommerce() {
             <div>
               <h2>Chọn theo làn da hôm nay.</h2>
               <p>
-                Sáu sản phẩm mẫu · giá và tồn kho dùng để trình diễn luồng mua hàng.
+                Mỹ phẩm và thiết bị được chọn theo tình trạng da, nhu cầu và ngân sách.
               </p>
             </div>
             <span aria-live="polite" aria-atomic="true">
@@ -935,6 +1013,7 @@ export default function SpaCommerce() {
                       alt={`${product.name}, sản phẩm ${product.category.toLocaleLowerCase("vi")}`}
                       width={600}
                       height={800}
+                      unoptimized
                       loading="lazy"
                       sizes="(min-width: 960px) 25vw, (min-width: 640px) 50vw, 100vw"
                     />
@@ -989,6 +1068,7 @@ export default function SpaCommerce() {
               alt="Chuyên viên TĨNH kiểm tra tình trạng da trong buổi tư vấn"
               width={1280}
               height={956}
+              unoptimized
               loading="lazy"
               sizes="(min-width: 960px) 48vw, 100vw"
             />
@@ -1002,6 +1082,32 @@ export default function SpaCommerce() {
                 sản phẩm không mua tại TĨNH.
               </span>
             </header>
+            <div className="service-selector" aria-label="Chọn liệu trình">
+              {services.map((service) => {
+                const selected = selectedServiceId === service.id;
+                return (
+                  <button
+                    className={selected ? "is-selected" : ""}
+                    type="button"
+                    aria-pressed={selected}
+                    key={service.id}
+                    onClick={() => setSelectedServiceId(service.id)}
+                  >
+                    <span>
+                      <strong>{service.name}</strong>
+                      <small>{service.duration}</small>
+                    </span>
+                    <span>
+                      {formatMoney(service.price)}
+                      {selected && <Check size={16} aria-hidden="true" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="selected-service-note" aria-live="polite">
+              {services.find((service) => service.id === selectedServiceId)?.description}
+            </p>
             <ol className="booking-steps">
               <li>
                 <span>01</span>
@@ -1014,7 +1120,7 @@ export default function SpaCommerce() {
                 <span>02</span>
                 <div>
                   <h3>Chọn khung giờ</h3>
-                  <p>Hệ thống giữ yêu cầu; lễ tân gọi lại để xác nhận.</p>
+                  <p>Yêu cầu được lưu ngay để quản trị viên xác nhận.</p>
                 </div>
               </li>
               <li>
@@ -1025,7 +1131,11 @@ export default function SpaCommerce() {
                 </div>
               </li>
             </ol>
-            <button className="primary-action" type="button" onClick={openBooking}>
+            <button
+              className="primary-action"
+              type="button"
+              onClick={() => chooseServiceAndBook(selectedServiceId)}
+            >
               Chọn lịch phù hợp
               <CalendarDays size={18} aria-hidden="true" />
             </button>
@@ -1072,9 +1182,9 @@ export default function SpaCommerce() {
             <button type="button" onClick={openBooking}>
               Đặt lịch
             </button>
-            <Link href="/admin">Quản trị demo</Link>
+            <Link href="/admin">Quản trị</Link>
           </div>
-          <span>Portfolio concept · 2026</span>
+          <span>© 2026 TĨNH Skin Atelier</span>
         </div>
       </footer>
 
@@ -1091,7 +1201,13 @@ export default function SpaCommerce() {
         <header>
           <div>
             <span id="cart-title">Giỏ hàng</span>
-            <strong>{cartCount} sản phẩm</strong>
+            <strong>
+              {checkoutState === "details" || checkoutState === "processing"
+                ? "Thông tin nhận hàng"
+                : checkoutState === "confirmed"
+                  ? "Đơn hàng đã ghi nhận"
+                  : `${cartCount} sản phẩm`}
+            </strong>
           </div>
           <button
             className="icon-button"
@@ -1104,8 +1220,102 @@ export default function SpaCommerce() {
           </button>
         </header>
 
-        <div className="cart-lines">
-          {cart.length ? (
+        <div className={`cart-lines cart-state-${checkoutState}`}>
+          {checkoutState === "confirmed" ? (
+            <div className="checkout-confirmation" role="status">
+              <span className="confirmation-mark">
+                <BadgeCheck size={28} aria-hidden="true" />
+              </span>
+              <p>Đơn hàng đã được tạo</p>
+              <h3>{lastOrderId}</h3>
+              <span>
+                TĨNH đã lưu đơn vào khu quản trị. Nhân viên có thể tiếp tục xử lý
+                trạng thái giao hàng ngay trên dashboard.
+              </span>
+              <div>
+                <Link href="/admin?tab=orders">Xem trong quản trị</Link>
+                <button type="button" onClick={closeCart}>
+                  Tiếp tục mua sắm
+                </button>
+              </div>
+            </div>
+          ) : checkoutState === "processing" ? (
+            <div className="checkout-processing" role="status" aria-live="polite">
+              <span aria-hidden="true" />
+              <h3>Đang ghi nhận đơn hàng</h3>
+              <p>Thông tin nhận hàng đang được lưu an toàn trên thiết bị này.</p>
+            </div>
+          ) : checkoutState === "details" ? (
+            <form className="checkout-form" onSubmit={submitCheckout}>
+              <button
+                className="checkout-back"
+                type="button"
+                onClick={() => setCheckoutState("cart")}
+              >
+                <ArrowRight size={16} aria-hidden="true" />
+                Trở lại giỏ hàng
+              </button>
+              <label>
+                <span>Họ và tên</span>
+                <input name="name" autoComplete="name" required placeholder="Nguyễn An" />
+                <small>Tên người nhận ghi trên đơn hàng.</small>
+              </label>
+              <label>
+                <span>Số điện thoại</span>
+                <input
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  pattern="[0-9+\s]{9,14}"
+                  required
+                  placeholder="090 123 4567"
+                />
+                <small>Dùng để xác nhận giao nhận.</small>
+              </label>
+              <label>
+                <span>Địa chỉ giao hàng</span>
+                <textarea
+                  name="address"
+                  autoComplete="street-address"
+                  required
+                  placeholder="Số nhà, tên đường, phường/xã, tỉnh/thành"
+                />
+                <small>Ghi đủ thông tin để đơn vị vận chuyển liên hệ.</small>
+              </label>
+              <fieldset className="payment-options">
+                <legend>Thanh toán</legend>
+                <label>
+                  <input type="radio" name="payment" value="cod" defaultChecked />
+                  <Banknote size={18} aria-hidden="true" />
+                  <span>
+                    <strong>Khi nhận hàng</strong>
+                    <small>Thanh toán trực tiếp cho đơn vị giao nhận.</small>
+                  </span>
+                </label>
+                <label>
+                  <input type="radio" name="payment" value="bank" />
+                  <CreditCard size={18} aria-hidden="true" />
+                  <span>
+                    <strong>Chuyển khoản</strong>
+                    <small>TĨNH gửi thông tin sau khi xác nhận đơn.</small>
+                  </span>
+                </label>
+              </fieldset>
+              <div className="checkout-total">
+                <span>Tổng thanh toán</span>
+                <strong>{formatMoney(subtotal - discount)}</strong>
+              </div>
+              <button className="checkout-button" type="submit">
+                Xác nhận đặt hàng
+                <ArrowRight size={17} aria-hidden="true" />
+              </button>
+              <p className="checkout-security">
+                <BadgeCheck size={16} aria-hidden="true" />
+                Thông tin được lưu để vận hành đơn hàng trong phiên bản bàn giao.
+              </p>
+            </form>
+          ) : cart.length ? (
             cart.map((line) => (
               <article className="cart-line" key={line.product.id}>
                 <Image
@@ -1113,6 +1323,7 @@ export default function SpaCommerce() {
                   alt=""
                   width={90}
                   height={120}
+                  unoptimized
                 />
                 <div>
                   <h3>{line.product.name}</h3>
@@ -1146,7 +1357,7 @@ export default function SpaCommerce() {
             <div className="empty-cart">
               <ShoppingBag size={28} aria-hidden="true" />
               <h3>Giỏ hàng đang trống.</h3>
-              <p>Thêm một sản phẩm để xem luồng đặt hàng demo.</p>
+              <p>Chọn một sản phẩm phù hợp để bắt đầu đơn hàng.</p>
               <button type="button" onClick={closeCart}>
                 Tiếp tục chọn
               </button>
@@ -1154,7 +1365,7 @@ export default function SpaCommerce() {
           )}
         </div>
 
-        {cart.length > 0 && (
+        {checkoutState === "cart" && cart.length > 0 && (
           <div className="cart-summary">
             <div className="coupon-row">
               <label>
@@ -1204,13 +1415,12 @@ export default function SpaCommerce() {
             <button
               className="checkout-button"
               type="button"
-              disabled={checkingOut}
-              aria-busy={checkingOut}
-              onClick={checkout}
+              onClick={() => setCheckoutState("details")}
             >
-              {checkingOut ? "Đang tạo đơn…" : "Đặt hàng demo"}
+              Tiếp tục đặt hàng
+              <ArrowRight size={17} aria-hidden="true" />
             </button>
-            <small>Chưa kết nối cổng thanh toán trong bản portfolio.</small>
+            <small>Miễn phí giao hàng cho đơn từ 1.200.000 ₫.</small>
           </div>
         )}
       </aside>
@@ -1250,7 +1460,7 @@ export default function SpaCommerce() {
               <span>Đặt lịch</span>
               <h2 id="booking-title">Chọn một khoảng dành cho làn da.</h2>
               <p id="booking-description">
-                Gửi yêu cầu trước; lễ tân sẽ gọi lại để chốt giờ chính xác.
+                Chọn dịch vụ và khung giờ; yêu cầu sẽ xuất hiện ngay trong khu quản trị.
               </p>
             </div>
             <button
@@ -1268,9 +1478,10 @@ export default function SpaCommerce() {
                 <Check size={24} aria-hidden="true" />
               </span>
               <p>Yêu cầu đã được ghi nhận</p>
-              <h3 ref={bookingConfirmation} tabIndex={-1}>
+              <h3>
                 TĨNH sẽ gọi để xác nhận khung giờ.
               </h3>
+              <strong className="booking-reference">{bookingReference}</strong>
               <small>
                 Bạn chưa cần thanh toán. Mọi thay đổi về dịch vụ có thể trao đổi
                 khi lễ tân liên hệ.
@@ -1289,10 +1500,13 @@ export default function SpaCommerce() {
               <div className="booking-form-grid">
             <label>
               <span>Liệu trình</span>
-              <select ref={bookingService} name="service" required defaultValue="">
-                <option value="" disabled>
-                  Chọn liệu trình
-                </option>
+              <select
+                ref={bookingService}
+                name="service"
+                required
+                value={selectedServiceId}
+                onChange={(event) => setSelectedServiceId(event.target.value)}
+              >
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>
                     {service.name} · {formatMoney(service.price)}
@@ -1384,7 +1598,7 @@ export default function SpaCommerce() {
             <span className="advisor-dot" aria-hidden="true" />
             <div>
               <strong id="advisor-chat-title">Tư vấn TĨNH</strong>
-              <small>Đang trực tuyến · phản hồi demo</small>
+              <small>Trợ lý chọn routine · phản hồi tức thì</small>
             </div>
           </div>
           <button

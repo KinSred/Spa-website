@@ -25,6 +25,15 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatMoney, products } from "../data";
+import {
+  commerceStorageKeys,
+  readCommerceAppointments,
+  readCommerceOrders,
+  writeCommerceAppointments,
+  writeCommerceOrders,
+  type CommerceAppointment,
+  type CommerceOrder,
+} from "../commerce-storage";
 
 type AdminTab =
   | "overview"
@@ -34,69 +43,17 @@ type AdminTab =
   | "customers"
   | "reports";
 
-const revenue = [
-  { day: "01–05", value: 14.2 },
-  { day: "06–10", value: 18.6 },
-  { day: "11–15", value: 16.8 },
-  { day: "16–20", value: 24.5 },
-  { day: "21–25", value: 22.1 },
-  { day: "26–31", value: 28.6 },
-];
+type AdminCustomer = {
+  id: string;
+  name: string;
+  lastVisit: string;
+  orders: number;
+  note: string;
+};
 
-const initialOrders = [
-  { id: "DH-240731", customer: "Trần Minh Anh", total: 1650000, status: "Mới" },
-  { id: "DH-240730", customer: "Nguyễn Thảo Vy", total: 2480000, status: "Đang gói" },
-  { id: "DH-240729", customer: "Lê Khánh Linh", total: 940000, status: "Đã gửi" },
-  { id: "DH-240728", customer: "Phạm Ngọc Hà", total: 1440000, status: "Hoàn tất" },
-];
-
-const initialAppointments = [
-  {
-    id: "LH-084",
-    customer: "Đỗ Gia Hân",
-    service: "Calme — phục hồi",
-    time: "01/08 · 10:30",
-    status: "Chờ xác nhận",
-  },
-  {
-    id: "LH-083",
-    customer: "Vũ Hoài An",
-    service: "Soi da & routine",
-    time: "01/08 · 14:00",
-    status: "Đã xác nhận",
-  },
-  {
-    id: "LH-082",
-    customer: "Bùi Thanh Mai",
-    service: "Clarté — làm sạch",
-    time: "01/08 · 17:30",
-    status: "Đã xác nhận",
-  },
-];
-
-const initialCustomers = [
-  {
-    id: "KH-201",
-    name: "Trần Minh Anh",
-    lastVisit: "24/07/2026",
-    orders: 4,
-    note: "Da dễ đỏ khi đổi thời tiết. Ưu tiên routine tối giản.",
-  },
-  {
-    id: "KH-196",
-    name: "Nguyễn Thảo Vy",
-    lastVisit: "19/07/2026",
-    orders: 2,
-    note: "Đang dùng retinoid theo hướng dẫn bác sĩ; không gợi ý peel.",
-  },
-  {
-    id: "KH-183",
-    name: "Lê Khánh Linh",
-    lastVisit: "02/07/2026",
-    orders: 6,
-    note: "Ưa kết cấu ráo. Nhắc thoa lại chống nắng khi đi công tác.",
-  },
-];
+const initialOrders: CommerceOrder[] = [];
+const initialAppointments: CommerceAppointment[] = [];
+const initialCustomers: AdminCustomer[] = [];
 
 const tabLabels: Record<AdminTab, string> = {
   overview: "Tổng quan",
@@ -105,6 +62,76 @@ const tabLabels: Record<AdminTab, string> = {
   appointments: "Lịch hẹn",
   customers: "Khách hàng",
   reports: "Báo cáo",
+};
+
+const mergeById = <T extends { id: string | number }>(stored: T[], seeded: T[]) => {
+  const seen = new Set<string | number>();
+  return [...stored, ...seeded].filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+};
+
+const formatAppointmentDate = (value: string) => {
+  const [year, month, day] = value.split("-");
+  return year && month && day ? `${day}/${month}` : value;
+};
+
+const escapeXml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+
+const formatCustomerDate = (value: string) =>
+  new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
+
+const buildCustomerProfiles = (
+  orders: CommerceOrder[],
+  appointments: CommerceAppointment[],
+  persisted: AdminCustomer[],
+) => {
+  const names = new Map<string, { latest: string; orders: number }>();
+  orders.forEach((order) => {
+    const current = names.get(order.customer);
+    names.set(order.customer, {
+      latest:
+        !current || new Date(order.createdAt) > new Date(current.latest)
+          ? order.createdAt
+          : current.latest,
+      orders: (current?.orders ?? 0) + 1,
+    });
+  });
+  appointments.forEach((appointment) => {
+    const current = names.get(appointment.customer);
+    names.set(appointment.customer, {
+      latest:
+        !current || new Date(appointment.createdAt) > new Date(current.latest)
+          ? appointment.createdAt
+          : current.latest,
+      orders: current?.orders ?? 0,
+    });
+  });
+
+  return [...names.entries()]
+    .sort(([, a], [, b]) => +new Date(b.latest) - +new Date(a.latest))
+    .map(([name, activity], index) => {
+      const saved = persisted.find((customer) => customer.name === name);
+      return {
+        id: saved?.id ?? `KH-${String(index + 1).padStart(3, "0")}`,
+        name,
+        lastVisit: formatCustomerDate(activity.latest),
+        orders: activity.orders,
+        note: saved?.note ?? "",
+      };
+    });
 };
 
 export default function AdminDashboard() {
@@ -121,6 +148,7 @@ export default function AdminDashboard() {
   const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
   const [productAdded, setProductAdded] = useState(false);
   const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const [storageHydrated, setStorageHydrated] = useState(false);
   const sidebar = useRef<HTMLElement>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const pageTitle = useRef<HTMLHeadingElement>(null);
@@ -178,6 +206,72 @@ export default function AdminDashboard() {
     return () => window.clearTimeout(timeout);
   }, [productAdded]);
 
+  useEffect(() => {
+    const storedOrders = readCommerceOrders();
+    const storedAppointments = readCommerceAppointments();
+    let storedInventory: unknown = [];
+    let storedCustomers: unknown = [];
+
+    try {
+      storedInventory = JSON.parse(
+        window.localStorage.getItem(commerceStorageKeys.inventory) ?? "[]",
+      );
+      storedCustomers = JSON.parse(
+        window.localStorage.getItem(commerceStorageKeys.customers) ?? "[]",
+      );
+    } catch {
+      window.localStorage.removeItem(commerceStorageKeys.inventory);
+      window.localStorage.removeItem(commerceStorageKeys.customers);
+    }
+
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    const hydratedOrders = mergeById(storedOrders, initialOrders);
+    const hydratedAppointments = mergeById(
+      storedAppointments,
+      initialAppointments,
+    );
+    const persistedCustomers = Array.isArray(storedCustomers)
+      ? (storedCustomers as AdminCustomer[])
+      : [];
+    const frame = window.requestAnimationFrame(() => {
+      setOrders(hydratedOrders);
+      setAppointments(hydratedAppointments);
+      if (Array.isArray(storedInventory) && storedInventory.length) {
+        setInventory(storedInventory);
+      }
+      setCustomers(
+        buildCustomerProfiles(
+          hydratedOrders,
+          hydratedAppointments,
+          persistedCustomers,
+        ),
+      );
+      if (requestedTab && requestedTab in tabLabels) setTab(requestedTab as AdminTab);
+      setStorageHydrated(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!storageHydrated) return;
+    writeCommerceOrders(orders);
+  }, [orders, storageHydrated]);
+
+  useEffect(() => {
+    if (!storageHydrated) return;
+    writeCommerceAppointments(appointments);
+  }, [appointments, storageHydrated]);
+
+  useEffect(() => {
+    if (!storageHydrated) return;
+    window.localStorage.setItem(commerceStorageKeys.inventory, JSON.stringify(inventory));
+  }, [inventory, storageHydrated]);
+
+  useEffect(() => {
+    if (!storageHydrated) return;
+    window.localStorage.setItem(commerceStorageKeys.customers, JSON.stringify(customers));
+  }, [customers, storageHydrated]);
+
   const filteredInventory = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi");
     return inventory.filter((product) =>
@@ -188,6 +282,32 @@ export default function AdminDashboard() {
   }, [inventory, query]);
 
   const lowStock = inventory.filter((product) => product.stock <= 5);
+  const pendingAppointments = appointments.filter(
+    (appointment) => appointment.status === "Chờ xác nhận",
+  );
+  const activeOrders = orders.filter((order) => order.status !== "Hoàn tất");
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const revenue = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+    return Array.from({ length: 6 }, (_, index) => {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - (5 - index));
+      const next = new Date(date);
+      next.setDate(next.getDate() + 1);
+      const value = orders
+        .filter((order) => {
+          const createdAt = new Date(order.createdAt);
+          return createdAt >= date && createdAt < next;
+        })
+        .reduce((sum, order) => sum + order.total, 0);
+      return { day: formatter.format(date), value };
+    });
+  }, [orders]);
+  const peakRevenue = Math.max(...revenue.map((item) => item.value), 1);
 
   const selectTab = (next: AdminTab) => {
     if (isMobileLayout) menuTrigger.current?.focus();
@@ -221,7 +341,7 @@ export default function AdminDashboard() {
     );
   };
 
-  const addDemoProduct = () => {
+  const addProductDraft = () => {
     setInventory((current) => [
       ...current,
       {
@@ -237,7 +357,7 @@ export default function AdminDashboard() {
   };
 
   const updateOrderStatus = (id: string) => {
-    const next: Record<string, string> = {
+    const next: Record<CommerceOrder["status"], CommerceOrder["status"]> = {
       Mới: "Đang gói",
       "Đang gói": "Đã gửi",
       "Đã gửi": "Hoàn tất",
@@ -273,7 +393,7 @@ export default function AdminDashboard() {
     const rows = orders
       .map(
         (order) =>
-          `<Row><Cell><Data ss:Type="String">${order.id}</Data></Cell><Cell><Data ss:Type="String">${order.customer}</Data></Cell><Cell><Data ss:Type="Number">${order.total}</Data></Cell><Cell><Data ss:Type="String">${order.status}</Data></Cell></Row>`,
+          `<Row><Cell><Data ss:Type="String">${escapeXml(order.id)}</Data></Cell><Cell><Data ss:Type="String">${escapeXml(order.customer)}</Data></Cell><Cell><Data ss:Type="Number">${order.total}</Data></Cell><Cell><Data ss:Type="String">${escapeXml(order.status)}</Data></Cell></Row>`,
       )
       .join("");
     const workbook = `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Don hang"><Table><Row><Cell><Data ss:Type="String">Mã đơn</Data></Cell><Cell><Data ss:Type="String">Khách hàng</Data></Cell><Cell><Data ss:Type="String">Doanh thu</Data></Cell><Cell><Data ss:Type="String">Trạng thái</Data></Cell></Row>${rows}</Table></Worksheet></Workbook>`;
@@ -281,7 +401,7 @@ export default function AdminDashboard() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "tinh-spa-bao-cao-07-2026.xls";
+    anchor.download = `tinh-spa-bao-cao-${new Date().toISOString().slice(0, 10)}.xls`;
     anchor.click();
     URL.revokeObjectURL(url);
     setSaved("Đã xuất báo cáo Excel.");
@@ -391,8 +511,8 @@ export default function AdminDashboard() {
           </button>
         </nav>
         <div className="admin-sidebar-foot">
-          <p>Không gian demo</p>
-          <span>Dữ liệu mẫu · không phải dữ liệu khách thật</span>
+          <p>Không gian vận hành</p>
+          <span>Đơn hàng và lịch hẹn được đồng bộ từ storefront</span>
           <Link href="/">
             <ArrowLeft size={16} aria-hidden="true" />
             Về cửa hàng
@@ -433,7 +553,7 @@ export default function AdminDashboard() {
           <div className="admin-user">
             <span>DA</span>
             <div>
-              <strong>Demo Admin</strong>
+              <strong>Điều phối TĨNH</strong>
               <small>Quản trị viên</small>
             </div>
           </div>
@@ -450,8 +570,8 @@ export default function AdminDashboard() {
             <>
               <section className="admin-intro">
                 <div>
-                  <p>Dữ liệu mẫu · 01–31/07/2026</p>
-                  <h2>Hôm nay có 3 lịch hẹn cần theo dõi.</h2>
+                  <p>Dữ liệu vận hành · cập nhật trên thiết bị này</p>
+                  <h2>{pendingAppointments.length} lịch hẹn đang chờ xác nhận.</h2>
                 </div>
                 <button type="button" onClick={exportExcel}>
                   <ArrowDownToLine size={18} aria-hidden="true" />
@@ -461,22 +581,22 @@ export default function AdminDashboard() {
 
               <section className="metric-grid" aria-label="Chỉ số tổng quan">
                 <article className="metric-featured">
-                  <span>Doanh thu tháng</span>
-                  <strong>{formatMoney(124800000)}</strong>
+                  <span>Doanh thu ghi nhận</span>
+                  <strong>{formatMoney(totalRevenue)}</strong>
                   <p>
                     <TrendingUp size={17} aria-hidden="true" />
-                    +8,4% so với dữ liệu mẫu tháng trước
+                    {orders.length} đơn hàng trong hệ thống
                   </p>
                 </article>
                 <article>
                   <span>Đơn hàng</span>
-                  <strong>46</strong>
-                  <p>6 đơn đang xử lý</p>
+                  <strong>{orders.length}</strong>
+                  <p>{activeOrders.length} đơn đang xử lý</p>
                 </article>
                 <article>
                   <span>Lịch hẹn</span>
-                  <strong>18</strong>
-                  <p>3 lịch trong hôm nay</p>
+                  <strong>{appointments.length}</strong>
+                  <p>{pendingAppointments.length} lịch chờ xác nhận</p>
                 </article>
                 <article className="metric-warning">
                   <span>Sắp hết hàng</span>
@@ -493,17 +613,23 @@ export default function AdminDashboard() {
                   <header>
                     <div>
                       <span>Doanh thu theo kỳ</span>
-                      <strong>124,8 triệu ₫</strong>
+                      <strong>{formatMoney(totalRevenue)}</strong>
                     </div>
                     <p>Đơn vị: triệu ₫</p>
                   </header>
                   <div className="bar-chart" aria-hidden="true">
                     {revenue.map((item) => (
                       <div key={item.day}>
-                        <span>{item.value}</span>
+                        <span>
+                          {item.value
+                            ? (item.value / 1000000).toLocaleString("vi-VN", {
+                                maximumFractionDigits: 1,
+                              })
+                            : "—"}
+                        </span>
                         <i
                           style={
-                            { "--bar-scale": item.value / 30 } as React.CSSProperties
+                            { "--bar-scale": item.value / peakRevenue } as React.CSSProperties
                           }
                         />
                         <small>{item.day}</small>
@@ -511,13 +637,12 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                   <figcaption className="sr-only">
-                    Doanh thu mẫu theo sáu kỳ trong tháng 7, từ 14,2 đến 28,6
-                    triệu đồng; kỳ 26–31 cao nhất.
+                    Doanh thu thực tế từ đơn hàng đã lưu trong sáu ngày gần nhất.
                   </figcaption>
                   <ul className="sr-only">
                     {revenue.map((item) => (
                       <li key={item.day}>
-                        Kỳ {item.day}: {item.value.toLocaleString("vi-VN")} triệu đồng
+                        Ngày {item.day}: {formatMoney(item.value)}
                       </li>
                     ))}
                   </ul>
@@ -569,7 +694,7 @@ export default function AdminDashboard() {
                   <span>Danh mục & tồn kho</span>
                   <strong>{inventory.length} sản phẩm</strong>
                 </div>
-                <button type="button" onClick={addDemoProduct}>
+                <button type="button" onClick={addProductDraft}>
                   {productAdded ? (
                     <Check size={17} aria-hidden="true" />
                   ) : (
@@ -673,7 +798,7 @@ export default function AdminDashboard() {
               <header>
                 <div>
                   <span>Lịch hẹn</span>
-                  <strong>Ngày 01/08/2026</strong>
+                  <strong>Yêu cầu mới nhất</strong>
                 </div>
               </header>
               <div className="appointment-list">
@@ -681,7 +806,9 @@ export default function AdminDashboard() {
                   <article key={appointment.id}>
                     <div className="appointment-time">
                       <span>{appointment.id}</span>
-                      <strong>{appointment.time}</strong>
+                      <strong>
+                        {formatAppointmentDate(appointment.date)} · {appointment.time}
+                      </strong>
                     </div>
                     <div>
                       <strong>{appointment.customer}</strong>
@@ -703,6 +830,14 @@ export default function AdminDashboard() {
                     </button>
                   </article>
                 ))}
+                {!appointments.length && (
+                  <div className="admin-empty-state">
+                    <CalendarDays size={22} aria-hidden="true" />
+                    <strong>Chưa có yêu cầu lịch hẹn.</strong>
+                    <span>Lịch khách gửi từ storefront sẽ xuất hiện tại đây.</span>
+                    <Link href="/">Mở cửa hàng</Link>
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -712,7 +847,7 @@ export default function AdminDashboard() {
               <header>
                 <div>
                   <span>Khách hàng & ghi chú</span>
-                  <strong>Hồ sơ chăm sóc mẫu</strong>
+                  <strong>Hồ sơ chăm sóc nội bộ</strong>
                 </div>
               </header>
               <div className="customer-list">
@@ -761,6 +896,14 @@ export default function AdminDashboard() {
                     </button>
                   </article>
                 ))}
+                {!customers.length && (
+                  <div className="admin-empty-state">
+                    <UsersRound size={22} aria-hidden="true" />
+                    <strong>Chưa có hồ sơ khách hàng.</strong>
+                    <span>Hồ sơ được tạo khi storefront nhận đơn hoặc lịch hẹn.</span>
+                    <Link href="/">Mở cửa hàng</Link>
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -770,8 +913,8 @@ export default function AdminDashboard() {
               <header>
                 <div>
                   <span>Báo cáo cơ bản</span>
-                  <h2>Doanh thu và vận hành · Tháng 07/2026</h2>
-                  <p>Dữ liệu mẫu được tạo cho mục đích trình diễn portfolio.</p>
+                  <h2>Doanh thu và vận hành hiện tại</h2>
+                  <p>Đơn phát sinh trên storefront được đưa vào bảng đơn hàng và file xuất.</p>
                 </div>
                 <button type="button" onClick={exportExcel}>
                   <FileSpreadsheet size={18} aria-hidden="true" />
@@ -781,13 +924,13 @@ export default function AdminDashboard() {
               <div className="report-summary">
                 <article>
                   <span>Doanh thu sản phẩm</span>
-                  <strong>{formatMoney(81200000)}</strong>
-                  <p>65,1% tổng doanh thu mẫu</p>
+                  <strong>{formatMoney(totalRevenue)}</strong>
+                  <p>{orders.length} đơn hàng đã ghi nhận</p>
                 </article>
                 <article>
-                  <span>Doanh thu dịch vụ</span>
-                  <strong>{formatMoney(43600000)}</strong>
-                  <p>34,9% tổng doanh thu mẫu</p>
+                  <span>Yêu cầu dịch vụ</span>
+                  <strong>{appointments.length}</strong>
+                  <p>{pendingAppointments.length} lịch đang chờ xác nhận</p>
                 </article>
               </div>
               <div
@@ -798,7 +941,7 @@ export default function AdminDashboard() {
               >
               <table className="report-breakdown">
                 <caption className="sr-only">
-                  Doanh thu và tỷ trọng theo sáu kỳ trong tháng 7 năm 2026
+                  Doanh thu và tỷ trọng theo sáu ngày gần nhất
                 </caption>
                 <thead>
                   <tr>
@@ -810,9 +953,9 @@ export default function AdminDashboard() {
                 <tbody>
                   {revenue.map((item) => (
                     <tr key={item.day}>
-                      <th scope="row">{item.day}/07</th>
+                      <th scope="row">{item.day}</th>
                       <td>
-                        <strong>{item.value.toLocaleString("vi-VN")} triệu ₫</strong>
+                        <strong>{formatMoney(item.value)}</strong>
                       </td>
                       <td>
                         <span className="report-share">
@@ -820,11 +963,16 @@ export default function AdminDashboard() {
                             aria-hidden="true"
                             style={
                               {
-                                "--share-scale": item.value / 30,
+                                "--share-scale": item.value / peakRevenue,
                               } as React.CSSProperties
                             }
                           />
-                          <small>{Math.round((item.value / 30) * 100)}%</small>
+                          <small>
+                            {totalRevenue
+                              ? Math.round((item.value / totalRevenue) * 100)
+                              : 0}
+                            %
+                          </small>
                         </span>
                       </td>
                     </tr>
@@ -858,6 +1006,17 @@ function OrderTable({
   orders: typeof initialOrders;
   onAdvance: (id: string) => void;
 }) {
+  if (!orders.length) {
+    return (
+      <div className="admin-empty-state">
+        <ShoppingBag size={22} aria-hidden="true" />
+        <strong>Chưa có đơn hàng.</strong>
+        <span>Đơn được tạo từ giỏ hàng sẽ xuất hiện tại đây.</span>
+        <Link href="/">Mở cửa hàng</Link>
+      </div>
+    );
+  }
+
   return (
     <div
       className="order-table"
@@ -881,10 +1040,10 @@ function OrderTable({
         <tbody>
           {orders.map((order) => (
             <tr key={order.id}>
-              <th scope="row">{order.id}</th>
-              <td>{order.customer}</td>
-              <td>{formatMoney(order.total)}</td>
-              <td>
+              <th scope="row" data-label="Mã đơn">{order.id}</th>
+              <td data-label="Khách hàng">{order.customer}</td>
+              <td data-label="Tổng">{formatMoney(order.total)}</td>
+              <td data-label="Trạng thái">
                 <span
                   className={`status-badge status-${order.status.toLocaleLowerCase("vi").replaceAll(" ", "-")}`}
                   aria-live="polite"
@@ -892,7 +1051,7 @@ function OrderTable({
                   {order.status}
                 </span>
               </td>
-              <td>
+              <td data-label="Thao tác">
                 <button
                   type="button"
                   disabled={order.status === "Hoàn tất"}

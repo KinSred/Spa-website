@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, IBM_Plex_Sans } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
+import "./liquid.css";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",

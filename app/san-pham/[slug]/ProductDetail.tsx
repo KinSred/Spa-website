@@ -80,10 +80,11 @@ export default function ProductDetail({ product }: { product: Product }) {
             alt={`${product.name}, ${product.note}`}
             width={600}
             height={800}
+            unoptimized
             priority
             sizes="(min-width: 960px) 48vw, 100vw"
           />
-          {product.stock <= 5 && <figcaption>Chỉ còn {product.stock} sản phẩm mẫu</figcaption>}
+          {product.stock <= 5 && <figcaption>Chỉ còn {product.stock} sản phẩm</figcaption>}
         </figure>
 
         <div className="detail-copy">
@@ -176,7 +177,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   : "Giỏ đã đạt số lượng tồn kho hiện có."
                 : quantity >= product.stock
                   ? `Đã chọn tối đa ${product.stock} sản phẩm còn lại.`
-                  : `${product.stock} sản phẩm mẫu đang có sẵn.`}
+                  : `${product.stock} sản phẩm đang có sẵn.`}
             </span>
             {added && (
               <Link href="/?cart=open">

@@ -1,72 +1,83 @@
 # Design — TĨNH Spa Commerce
 
-## Intent
+A locked system for a real spa-commerce experience. Every route shares the same mineral-green palette, tactile glass material, typography, interaction voice, and product-to-service continuity.
 
-TĨNH is a quiet-luxury spa commerce experience for real customers who move between two connected needs: caring for their skin at home and booking professional care. The interface should feel editorial and tactile, but remain direct enough to buy a product, book a treatment, ask an advisor, or operate the business without friction.
+## Genre
 
-## Design language
+Editorial commerce with quiet-luxury restraint. The interface feels calm and sensory, but purchase, booking, search, stock and operations stay explicit.
 
-- Genre: editorial commerce with an Atelier treatment.
-- Voice: composed, specific, warm; short Vietnamese copy with no promotional shouting.
-- Materials: warm paper, wine-red ink, hairline rules, generous negative space, close-cropped skincare photography.
-- Typography: Cormorant Garamond for display and editorial moments; IBM Plex Sans for controls, data, labels, prices, and body copy.
-- Shape: mostly square and hairline-led. Small radii are reserved for compact controls, not used as a generic card treatment.
-- Responsive stance: preserve the order of decisions, not the desktop geometry. Mobile keeps the same product-to-service relationship with a sticky booking action.
+## Macrostructure family
 
-## Route macrostructures
+- Storefront `/`: **Marquee Hero** with a full-bleed treatment photograph and the first CTA below the fold; F6 product floor; F4 treatment sequence; Ft5 statement close.
+- Product `/san-pham/[slug]`: **Photographic Purchase Studio** with a persistent image field and one focused glass purchase surface.
+- Admin `/admin`: **Bento Operations** with a floating command rail, irregular metric hierarchy and dense tabular work areas.
 
-### Storefront `/` — Catalogue
+## Theme — Studio Mineral
 
-- N12 announcement and retractable navigation.
-- H6 photographic fold: a full image field with an anchored paper copy panel.
-- F6 editorial product grid with useful filters and visible active criteria.
-- Service booking is presented as a parallel purchase path, never a secondary afterthought.
-- Ft1 mast-headed footer.
+- Paper: warm mineral ivory, not pure white.
+- Ink: deep botanical charcoal.
+- Accent: controlled forest green, used for actions and state—not decoration.
+- Glass: translucent ivory over photographic or softly coloured fields, with one hairline edge and restrained blur.
+- No gradients. Depth comes from transparency, image fields, layering, blur and measured shadow.
 
-### Product `/san-pham/[slug]` — Split Studio
+## Typography
 
-- Product portrait and purchase proof occupy two calm, balanced fields.
-- Quantity, inventory, and add state are explicit and accessible.
-- The path back to the combined shop-and-service experience remains visible.
+- Display: Cormorant Garamond, weight 300/600, upright only.
+- Body and controls: IBM Plex Sans, weight 400/600.
+- Large type uses tight tracking and short lines; operational text remains compact and tabular.
+- No italic headings or single-word italic emphasis.
 
-### Admin `/admin` — Workbench
+## Navigation and footer
 
-- Quiet rail navigation, task-first header, dense but legible operational surfaces.
-- Charts reveal from their origin using transforms only.
-- Tab changes crossfade; data rows do not perform decorative motion.
+- Nav: **N10 Floating-on-scroll morph**, edge-spanning over the first scene and condensing into a compact glass rail after the first scroll threshold.
+- Footer: **Ft5 Statement**, one closing sentence followed by a restrained metadata row.
+- The product filter bar may become sticky glass because it carries an active task. Decorative cards may not.
 
-## Interaction and motion
+## Spacing and shape
 
-- Maximum three motion primitives per route.
-- Storefront: first-fold reveal, surface reveal for menus/drawers/dialogs, commerce-state feedback.
-- Product: image/copy entrance, quantity feedback, add-button state morph.
-- Admin: tab crossfade, chart reveal, inline save confirmation.
-- Motion uses opacity and transform only. Focus rings are immediate. Major transitions remain under 500ms.
-- Overlays are mutually exclusive, Escape-dismissable, scroll-locking where appropriate, and return focus to their trigger.
-- Reduced-motion keeps closed/open state transforms intact while removing decorative animation.
+- Four-point named scale from `tokens.css`.
+- Soft radii belong to glass navigation, active commerce controls and major photographic frames.
+- Product cards remain mostly unboxed; their glass metadata overlaps the image rather than wrapping the entire card.
+- Mobile preserves decision order at 320/375/414px and keeps hit targets at least 44px.
 
-## Token source of truth
+## Motion
 
-The canonical implementation is [`tokens.css`](./tokens.css). Components consume semantic variables only; raw color and font values stay out of route styles.
+- Three primitives per route: first-scene reveal, navigation morph, state feedback.
+- Motion uses opacity and transform; major motion stays under 760ms.
+- Images may settle once on load and scale no more than 1.025 on hover.
+- Reduced motion removes decorative transforms and keeps open/closed states legible.
 
-### CSS variables
+## Product × service signature
+
+Buying and booking are equal paths. The storefront introduces both below the marquee, product pages preserve the consultation route, and admin reporting keeps product and service revenue visible together.
+
+## Exports
+
+### tokens.css
 
 ```css
 :root {
-  --color-paper: oklch(97% 0.014 78);
-  --color-surface: oklch(99% 0.008 78);
-  --color-ink: oklch(19% 0.025 33);
-  --color-accent: oklch(35% 0.105 21);
+  --color-paper: oklch(97% 0.015 96);
+  --color-paper-2: oklch(94% 0.024 108);
+  --color-ink: oklch(18% 0.028 155);
+  --color-ink-2: oklch(31% 0.032 155);
+  --color-rule: oklch(82% 0.025 130);
+  --color-accent: oklch(37% 0.11 151);
+  --color-accent-ink: oklch(98% 0.012 105);
+  --color-focus: oklch(55% 0.15 151);
+  --color-glass: oklch(98% 0.014 102 / 0.68);
   --font-display: var(--font-cormorant);
   --font-body: var(--font-ibm-plex);
   --space-md: 1rem;
   --space-2xl: 4rem;
-  --dur-short: 280ms;
+  --text-display: clamp(3.25rem, 6.4vw, 5.5rem);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-short: 280ms;
+  --radius-xl: 2rem;
 }
 ```
 
-### Tailwind v4 mapping
+### Tailwind v4 `@theme`
 
 ```css
 @theme inline {
@@ -77,43 +88,52 @@ The canonical implementation is [`tokens.css`](./tokens.css). Components consume
   --font-tinh-display: var(--font-display);
   --font-tinh-body: var(--font-body);
   --spacing-page: var(--page-gutter);
+  --radius-tinh-glass: var(--radius-xl);
 }
 ```
 
-### DTCG subset
+### DTCG `tokens.json`
 
 ```json
 {
   "color": {
-    "paper": { "$type": "color", "$value": "oklch(97% 0.014 78)" },
-    "ink": { "$type": "color", "$value": "oklch(19% 0.025 33)" },
-    "accent": { "$type": "color", "$value": "oklch(35% 0.105 21)" }
+    "paper": { "$type": "color", "$value": "oklch(97% 0.015 96)" },
+    "ink": { "$type": "color", "$value": "oklch(18% 0.028 155)" },
+    "accent": { "$type": "color", "$value": "oklch(37% 0.11 151)" },
+    "glass": { "$type": "color", "$value": "oklch(98% 0.014 102 / 0.68)" }
+  },
+  "font": {
+    "display": { "$type": "fontFamily", "$value": "Cormorant Garamond" },
+    "body": { "$type": "fontFamily", "$value": "IBM Plex Sans" }
   },
   "motion": {
     "short": { "$type": "duration", "$value": "280ms" },
-    "long": { "$type": "duration", "$value": "460ms" }
+    "scene": { "$type": "duration", "$value": "760ms" }
   }
 }
 ```
 
-### shadcn semantic mapping
+### shadcn/ui CSS variables
 
 ```css
 :root {
   --background: var(--color-paper);
   --foreground: var(--color-ink);
-  --card: var(--color-surface);
+  --card: var(--color-glass-strong);
   --card-foreground: var(--color-ink);
   --primary: var(--color-accent);
   --primary-foreground: var(--color-accent-ink);
+  --muted: var(--color-paper-2);
+  --muted-foreground: var(--color-muted);
   --border: var(--color-rule);
+  --input: var(--color-rule);
   --ring: var(--color-focus);
-  --destructive: var(--color-error);
+  --radius: var(--radius-md);
 }
 ```
 
 ## Deliberate constraints
 
-- No glassmorphism, glow, gradient decoration, pill-heavy UI, oversized display type, or floating rounded containers.
-- Product/service continuity is the signature interaction: every primary shopping surface should keep professional care one decision away.
-- Operational screens may be denser than the storefront, but must share the same type, color, rule, and interaction tokens.
+- Liquid glass is a material hierarchy, not a universal card style.
+- No glow, gradient decoration, pill-heavy content, generic icon tiles or ornamental badges.
+- App screens may be denser, but share the same glass, type, accent and motion tokens.

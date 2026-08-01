@@ -35,7 +35,7 @@ test("renders the luxury storefront with its stylesheet and two care paths", asy
 
   assert.match(html, /<html[^>]*lang="vi"/i);
   assert.match(html, /TĨNH/);
-  assert.match(html, /Một nghi thức, hai cách chăm da\./);
+  assert.match(html, /Chăm da, không chia đôi\./);
   assert.match(html, /id="catalogue"/);
   assert.match(html, /id="treatments"/);
   assert.match(html, /href="[^"]+\.css[^"]*"/i);
@@ -47,9 +47,9 @@ test("renders the operational admin workbench", async () => {
 
   assert.match(html, /TĨNH Spa Commerce/);
   assert.match(html, /Tổng quan/);
-  assert.match(html, /Doanh thu tháng/);
+  assert.match(html, /Doanh thu ghi nhận/);
   assert.match(html, /Xuất Excel/);
-  assert.match(html, /Dữ liệu mẫu/);
+  assert.match(html, /Dữ liệu vận hành/);
 });
 
 test("renders a product detail route with purchase and consultation paths", async () => {
@@ -61,20 +61,25 @@ test("renders a product detail route with purchase and consultation paths", asyn
   assert.match(html, /Trở lại cửa hàng/);
 });
 
-test("keeps design tokens, overlay safety and reduced motion in source", async () => {
-  const [css, tokens, storefront, admin] = await Promise.all([
+test("keeps design tokens, overlay safety, persistence and reduced motion in source", async () => {
+  const [css, liquid, tokens, storefront, admin, storage] = await Promise.all([
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/liquid.css", import.meta.url), "utf8"),
     readFile(new URL("../tokens.css", import.meta.url), "utf8"),
     readFile(new URL("../app/SpaCommerce.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/AdminDashboard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/commerce-storage.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(css, /@import "\.\.\/tokens\.css"/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(css, /transition-all/);
+  assert.match(liquid, /N10 Floating-on-scroll morph/);
   assert.match(tokens, /--color-accent:/);
   assert.match(tokens, /--dur-long:\s*460ms/);
   assert.match(storefront, /inert=\{!cartOpen\}/);
   assert.match(storefront, /aria-modal="true"/);
   assert.match(admin, /inert=\{isMobileLayout && !mobileNav\}/);
+  assert.match(storage, /tinh-orders/);
+  assert.match(storage, /tinh-appointments/);
 });

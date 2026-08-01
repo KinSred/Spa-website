@@ -2,8 +2,8 @@
   "date": "2026-08-01",
   "framework": "Vinext / Next.js App Router",
   "font_stack": "Cormorant Garamond + IBM Plex Sans via next/font",
-  "palette": "OKLCH tokens in tokens.css",
-  "motion": "CSS-only, deliberate motion-on with reduced-motion fallbacks",
+  "palette": "Studio Mineral OKLCH tokens with controlled translucent glass materials",
+  "motion": "CSS-only scene, surface and state motion with reduced-motion fallbacks",
   "spacing": "4pt semantic scale",
-  "source": "existing Vinext app audited and redesigned in place"
+  "source": "existing multi-route Vinext app rebuilt in place with a shared liquid-glass design system"
 }
