@@ -5,5 +5,14 @@
     "theme": "Atelier",
     "enrichment": "E8 Hero Photography",
     "brief": "TĨNH Spa Commerce — products, treatments, booking, chat and admin"
+  },
+  {
+    "date": "2026-08-01",
+    "scope": "app",
+    "macrostructure": "Catalogue / Split Studio / Workbench",
+    "variation": "N12 retractable announcement, H6 photographic fold, F6 product grid, Ft1 masthead",
+    "theme": "Atelier",
+    "enrichment": "E8 Hero Photography + quiet state motion",
+    "brief": "Luxury redesign for real spa customers buying products and booking services"
   }
 ]

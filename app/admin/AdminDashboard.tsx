@@ -23,7 +23,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatMoney, products } from "../data";
 
 type AdminTab =
@@ -118,6 +118,65 @@ export default function AdminDashboard() {
     products.map((product) => ({ ...product, visible: true })),
   );
   const [saved, setSaved] = useState("");
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
+  const [productAdded, setProductAdded] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(false);
+  const sidebar = useRef<HTMLElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const pageTitle = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 59.99rem)");
+    const sync = () => {
+      setIsMobileLayout(media.matches);
+      if (!media.matches) setMobileNav(false);
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileLayout) return;
+    document.body.classList.toggle("is-scroll-locked", mobileNav);
+    if (mobileNav) {
+      window.requestAnimationFrame(() =>
+        sidebar.current
+          ?.querySelector<HTMLButtonElement>('button[aria-current="page"]')
+          ?.focus(),
+      );
+    }
+    return () => document.body.classList.remove("is-scroll-locked");
+  }, [isMobileLayout, mobileNav]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && mobileNav) {
+        setMobileNav(false);
+        menuTrigger.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileNav]);
+
+  useEffect(() => {
+    if (!saved) return;
+    const timeout = window.setTimeout(() => setSaved(""), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [saved]);
+
+  useEffect(() => {
+    if (!savedNoteId) return;
+    const timeout = window.setTimeout(() => setSavedNoteId(null), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [savedNoteId]);
+
+  useEffect(() => {
+    if (!productAdded) return;
+    const timeout = window.setTimeout(() => setProductAdded(false), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [productAdded]);
 
   const filteredInventory = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi");
@@ -131,8 +190,17 @@ export default function AdminDashboard() {
   const lowStock = inventory.filter((product) => product.stock <= 5);
 
   const selectTab = (next: AdminTab) => {
+    if (isMobileLayout) menuTrigger.current?.focus();
     setTab(next);
     setMobileNav(false);
+    if (isMobileLayout) {
+      window.requestAnimationFrame(() => pageTitle.current?.focus());
+    }
+  };
+
+  const closeMobileNavigation = () => {
+    setMobileNav(false);
+    menuTrigger.current?.focus();
   };
 
   const adjustStock = (id: number, delta: number) => {
@@ -165,7 +233,7 @@ export default function AdminDashboard() {
         visible: false,
       },
     ]);
-    setSaved("Đã thêm một sản phẩm nháp.");
+    setProductAdded(true);
   };
 
   const updateOrderStatus = (id: string) => {
@@ -198,7 +266,7 @@ export default function AdminDashboard() {
         customer.id === id ? { ...customer, note } : customer,
       ),
     );
-    setSaved(`Đã lưu ghi chú cho ${id}.`);
+    setSavedNoteId(id);
   };
 
   const exportExcel = () => {
@@ -219,9 +287,38 @@ export default function AdminDashboard() {
     setSaved("Đã xuất báo cáo Excel.");
   };
 
+  const trapSidebarFocus = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!mobileNav || event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
     <div className="admin-shell">
-      <aside className={`admin-sidebar ${mobileNav ? "is-open" : ""}`}>
+      <aside
+        className={`admin-sidebar ${mobileNav ? "is-open" : ""}`}
+        id="admin-navigation"
+        ref={sidebar}
+        role={isMobileLayout ? "dialog" : undefined}
+        aria-modal={isMobileLayout && mobileNav ? "true" : undefined}
+        aria-label={isMobileLayout ? "Điều hướng quản trị" : undefined}
+        aria-hidden={isMobileLayout && !mobileNav}
+        inert={isMobileLayout && !mobileNav}
+        onKeyDown={trapSidebarFocus}
+      >
         <div className="admin-brand">
           <Link className="wordmark" href="/">
             TĨNH
@@ -231,59 +328,65 @@ export default function AdminDashboard() {
             className="icon-button admin-close"
             type="button"
             aria-label="Đóng điều hướng"
-            onClick={() => setMobileNav(false)}
+            onClick={closeMobileNavigation}
           >
-            <X size={21} />
+            <X size={21} aria-hidden="true" />
           </button>
         </div>
         <nav aria-label="Điều hướng quản trị">
           <button
             className={tab === "overview" ? "is-active" : ""}
             type="button"
+            aria-current={tab === "overview" ? "page" : undefined}
             onClick={() => selectTab("overview")}
           >
-            <LayoutDashboard size={19} />
+            <LayoutDashboard size={19} aria-hidden="true" />
             Tổng quan
           </button>
           <button
             className={tab === "products" ? "is-active" : ""}
             type="button"
+            aria-current={tab === "products" ? "page" : undefined}
             onClick={() => selectTab("products")}
           >
-            <Package size={19} />
+            <Package size={19} aria-hidden="true" />
             Sản phẩm
             {lowStock.length > 0 && <span>{lowStock.length}</span>}
           </button>
           <button
             className={tab === "orders" ? "is-active" : ""}
             type="button"
+            aria-current={tab === "orders" ? "page" : undefined}
             onClick={() => selectTab("orders")}
           >
-            <ShoppingBag size={19} />
+            <ShoppingBag size={19} aria-hidden="true" />
             Đơn hàng
           </button>
           <button
             className={tab === "appointments" ? "is-active" : ""}
             type="button"
+            aria-current={tab === "appointments" ? "page" : undefined}
             onClick={() => selectTab("appointments")}
           >
-            <CalendarDays size={19} />
+            <CalendarDays size={19} aria-hidden="true" />
             Lịch hẹn
           </button>
           <button
             className={tab === "customers" ? "is-active" : ""}
             type="button"
+            aria-current={tab === "customers" ? "page" : undefined}
             onClick={() => selectTab("customers")}
           >
-            <UsersRound size={19} />
+            <UsersRound size={19} aria-hidden="true" />
             Khách hàng
           </button>
           <button
             className={tab === "reports" ? "is-active" : ""}
             type="button"
+            aria-current={tab === "reports" ? "page" : undefined}
             onClick={() => selectTab("reports")}
           >
-            <FileSpreadsheet size={19} />
+            <FileSpreadsheet size={19} aria-hidden="true" />
             Báo cáo
           </button>
         </nav>
@@ -291,20 +394,20 @@ export default function AdminDashboard() {
           <p>Không gian demo</p>
           <span>Dữ liệu mẫu · không phải dữ liệu khách thật</span>
           <Link href="/">
-            <ArrowLeft size={16} />
+            <ArrowLeft size={16} aria-hidden="true" />
             Về cửa hàng
           </Link>
         </div>
       </aside>
 
-      {mobileNav && (
-        <button
-          className="admin-scrim"
-          type="button"
-          aria-label="Đóng điều hướng"
-          onClick={() => setMobileNav(false)}
-        />
-      )}
+      <button
+        className={`admin-scrim ${mobileNav ? "is-open" : ""}`}
+        type="button"
+        aria-label="Đóng điều hướng"
+        aria-hidden={!mobileNav}
+        inert={!mobileNav}
+        onClick={closeMobileNavigation}
+      />
 
       <main className="admin-main">
         <header className="admin-topbar">
@@ -312,14 +415,19 @@ export default function AdminDashboard() {
             <button
               className="icon-button admin-menu"
               type="button"
+              ref={menuTrigger}
               aria-label="Mở điều hướng"
+              aria-expanded={mobileNav}
+              aria-controls="admin-navigation"
               onClick={() => setMobileNav(true)}
             >
-              <Menu size={21} />
+              <Menu size={21} aria-hidden="true" />
             </button>
             <div>
               <span>TĨNH Spa Commerce</span>
-              <h1>{tabLabels[tab]}</h1>
+              <h1 id="admin-page-title" ref={pageTitle} tabIndex={-1}>
+                {tabLabels[tab]}
+              </h1>
             </div>
           </div>
           <div className="admin-user">
@@ -332,6 +440,12 @@ export default function AdminDashboard() {
         </header>
 
         <div className="admin-content">
+          <div
+            className="admin-view"
+            key={tab}
+            role="region"
+            aria-labelledby="admin-page-title"
+          >
           {tab === "overview" && (
             <>
               <section className="admin-intro">
@@ -340,7 +454,7 @@ export default function AdminDashboard() {
                   <h2>Hôm nay có 3 lịch hẹn cần theo dõi.</h2>
                 </div>
                 <button type="button" onClick={exportExcel}>
-                  <ArrowDownToLine size={18} />
+                  <ArrowDownToLine size={18} aria-hidden="true" />
                   Xuất Excel
                 </button>
               </section>
@@ -350,7 +464,7 @@ export default function AdminDashboard() {
                   <span>Doanh thu tháng</span>
                   <strong>{formatMoney(124800000)}</strong>
                   <p>
-                    <TrendingUp size={17} />
+                    <TrendingUp size={17} aria-hidden="true" />
                     +8,4% so với dữ liệu mẫu tháng trước
                   </p>
                 </article>
@@ -369,13 +483,13 @@ export default function AdminDashboard() {
                   <strong>{lowStock.length}</strong>
                   <button type="button" onClick={() => selectTab("products")}>
                     Xem tồn kho
-                    <ChevronRight size={16} />
+                    <ChevronRight size={16} aria-hidden="true" />
                   </button>
                 </article>
               </section>
 
               <section className="overview-grid">
-                <article className="revenue-card">
+                <figure className="revenue-card">
                   <header>
                     <div>
                       <span>Doanh thu theo kỳ</span>
@@ -383,16 +497,31 @@ export default function AdminDashboard() {
                     </div>
                     <p>Đơn vị: triệu ₫</p>
                   </header>
-                  <div className="bar-chart" aria-label="Biểu đồ doanh thu tháng 7">
+                  <div className="bar-chart" aria-hidden="true">
                     {revenue.map((item) => (
                       <div key={item.day}>
                         <span>{item.value}</span>
-                        <i style={{ "--bar-size": `${(item.value / 30) * 100}%` } as React.CSSProperties} />
+                        <i
+                          style={
+                            { "--bar-scale": item.value / 30 } as React.CSSProperties
+                          }
+                        />
                         <small>{item.day}</small>
                       </div>
                     ))}
                   </div>
-                </article>
+                  <figcaption className="sr-only">
+                    Doanh thu mẫu theo sáu kỳ trong tháng 7, từ 14,2 đến 28,6
+                    triệu đồng; kỳ 26–31 cao nhất.
+                  </figcaption>
+                  <ul className="sr-only">
+                    {revenue.map((item) => (
+                      <li key={item.day}>
+                        Kỳ {item.day}: {item.value.toLocaleString("vi-VN")} triệu đồng
+                      </li>
+                    ))}
+                  </ul>
+                </figure>
 
                 <article className="low-stock-card">
                   <header>
@@ -400,7 +529,7 @@ export default function AdminDashboard() {
                       <span>Tồn kho cần chú ý</span>
                       <strong>{lowStock.length} sản phẩm</strong>
                     </div>
-                    <TriangleAlert size={21} />
+                    <TriangleAlert size={21} aria-hidden="true" />
                   </header>
                   <div>
                     {lowStock.map((product) => (
@@ -411,7 +540,7 @@ export default function AdminDashboard() {
                       >
                         <span>{product.name}</span>
                         <strong>{product.stock} còn lại</strong>
-                        <ChevronRight size={16} />
+                        <ChevronRight size={16} aria-hidden="true" />
                       </button>
                     ))}
                   </div>
@@ -441,18 +570,26 @@ export default function AdminDashboard() {
                   <strong>{inventory.length} sản phẩm</strong>
                 </div>
                 <button type="button" onClick={addDemoProduct}>
-                  <Plus size={17} />
-                  Thêm sản phẩm
+                  {productAdded ? (
+                    <Check size={17} aria-hidden="true" />
+                  ) : (
+                    <Plus size={17} aria-hidden="true" />
+                  )}
+                  {productAdded ? "Đã thêm bản nháp" : "Thêm sản phẩm"}
                 </button>
               </header>
               <label className="admin-search">
-                <Search size={18} />
+                <span className="sr-only">Tìm trong danh mục sản phẩm</span>
+                <Search size={18} aria-hidden="true" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Tìm tên hoặc danh mục"
                 />
               </label>
+              <p className="admin-result-count" aria-live="polite">
+                {filteredInventory.length} sản phẩm khớp tìm kiếm
+              </p>
               <div className="inventory-list">
                 {filteredInventory.map((product) => (
                   <article key={product.id}>
@@ -461,24 +598,31 @@ export default function AdminDashboard() {
                       <strong>{product.name}</strong>
                       <small>{formatMoney(product.price)}</small>
                     </div>
-                    <div className="stock-control">
+                    <div
+                      className="stock-control"
+                      role="group"
+                      aria-label={`Tồn kho ${product.name}`}
+                    >
                       <button
                         type="button"
                         aria-label={`Giảm tồn kho ${product.name}`}
                         disabled={product.stock === 0}
                         onClick={() => adjustStock(product.id, -1)}
                       >
-                        <Minus size={15} />
+                        <Minus size={15} aria-hidden="true" />
                       </button>
-                      <span className={product.stock <= 5 ? "is-low" : ""}>
+                      <output
+                        className={product.stock <= 5 ? "is-low" : ""}
+                        aria-live="polite"
+                      >
                         {product.stock} tồn
-                      </span>
+                      </output>
                       <button
                         type="button"
                         aria-label={`Tăng tồn kho ${product.name}`}
                         onClick={() => adjustStock(product.id, 1)}
                       >
-                        <Plus size={15} />
+                        <Plus size={15} aria-hidden="true" />
                       </button>
                     </div>
                     <button
@@ -486,11 +630,24 @@ export default function AdminDashboard() {
                       type="button"
                       onClick={() => toggleVisible(product.id)}
                     >
-                      {product.visible ? <Eye size={17} /> : <EyeOff size={17} />}
+                      {product.visible ? (
+                        <Eye size={17} aria-hidden="true" />
+                      ) : (
+                        <EyeOff size={17} aria-hidden="true" />
+                      )}
                       {product.visible ? "Đang bán" : "Bản nháp"}
                     </button>
                   </article>
                 ))}
+                {!filteredInventory.length && (
+                  <div className="admin-empty-state">
+                    <Search size={22} aria-hidden="true" />
+                    <strong>Không tìm thấy sản phẩm.</strong>
+                    <button type="button" onClick={() => setQuery("")}>
+                      Xóa nội dung tìm kiếm
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -503,7 +660,7 @@ export default function AdminDashboard() {
                   <strong>Theo dõi trạng thái xử lý</strong>
                 </div>
                 <button type="button" onClick={exportExcel}>
-                  <ArrowDownToLine size={17} />
+                  <ArrowDownToLine size={17} aria-hidden="true" />
                   Xuất Excel
                 </button>
               </header>
@@ -532,6 +689,7 @@ export default function AdminDashboard() {
                     </div>
                     <span
                       className={`status-badge ${appointment.status === "Đã xác nhận" ? "status-complete" : ""}`}
+                      aria-live="polite"
                     >
                       {appointment.status}
                     </span>
@@ -540,7 +698,7 @@ export default function AdminDashboard() {
                       disabled={appointment.status === "Đã xác nhận"}
                       onClick={() => confirmAppointment(appointment.id)}
                     >
-                      <Check size={16} />
+                      <Check size={16} aria-hidden="true" />
                       {appointment.status === "Đã xác nhận" ? "Đã xác nhận" : "Xác nhận"}
                     </button>
                   </article>
@@ -562,7 +720,7 @@ export default function AdminDashboard() {
                   <article key={customer.id}>
                     <header>
                       <span>
-                        <CircleUserRound size={21} />
+                        <CircleUserRound size={21} aria-hidden="true" />
                       </span>
                       <div>
                         <strong>{customer.name}</strong>
@@ -588,10 +746,18 @@ export default function AdminDashboard() {
                       />
                     </label>
                     <button
+                      className={savedNoteId === customer.id ? "is-saved" : ""}
                       type="button"
                       onClick={() => saveCustomerNote(customer.id, customer.note)}
                     >
-                      Lưu ghi chú
+                      {savedNoteId === customer.id ? (
+                        <>
+                          <Check size={16} aria-hidden="true" />
+                          Đã lưu
+                        </>
+                      ) : (
+                        "Lưu ghi chú"
+                      )}
                     </button>
                   </article>
                 ))}
@@ -608,7 +774,7 @@ export default function AdminDashboard() {
                   <p>Dữ liệu mẫu được tạo cho mục đích trình diễn portfolio.</p>
                 </div>
                 <button type="button" onClick={exportExcel}>
-                  <FileSpreadsheet size={18} />
+                  <FileSpreadsheet size={18} aria-hidden="true" />
                   Xuất báo cáo Excel
                 </button>
               </header>
@@ -624,32 +790,59 @@ export default function AdminDashboard() {
                   <p>34,9% tổng doanh thu mẫu</p>
                 </article>
               </div>
-              <div className="report-breakdown">
-                <header>
-                  <span>Kỳ</span>
-                  <span>Doanh thu</span>
-                  <span>Tỷ trọng</span>
-                </header>
-                {revenue.map((item) => (
-                  <div key={item.day}>
-                    <span>{item.day}/07</span>
-                    <strong>{item.value.toLocaleString("vi-VN")} triệu ₫</strong>
-                    <i>
-                      <b style={{ "--share": `${(item.value / 30) * 100}%` } as React.CSSProperties} />
-                    </i>
-                  </div>
-                ))}
+              <div
+                className="report-table-region"
+                role="region"
+                aria-label="Bảng doanh thu theo kỳ, có thể cuộn ngang"
+                tabIndex={0}
+              >
+              <table className="report-breakdown">
+                <caption className="sr-only">
+                  Doanh thu và tỷ trọng theo sáu kỳ trong tháng 7 năm 2026
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Kỳ</th>
+                    <th scope="col">Doanh thu</th>
+                    <th scope="col">Tỷ trọng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {revenue.map((item) => (
+                    <tr key={item.day}>
+                      <th scope="row">{item.day}/07</th>
+                      <td>
+                        <strong>{item.value.toLocaleString("vi-VN")} triệu ₫</strong>
+                      </td>
+                      <td>
+                        <span className="report-share">
+                          <i
+                            aria-hidden="true"
+                            style={
+                              {
+                                "--share-scale": item.value / 30,
+                              } as React.CSSProperties
+                            }
+                          />
+                          <small>{Math.round((item.value / 30) * 100)}%</small>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               </div>
             </section>
           )}
+          </div>
         </div>
 
         {saved && (
           <div className="admin-toast" role="status">
-            <Check size={17} />
+            <Check size={17} aria-hidden="true" />
             {saved}
             <button type="button" aria-label="Đóng thông báo" onClick={() => setSaved("")}>
-              <X size={15} />
+              <X size={15} aria-hidden="true" />
             </button>
           </div>
         )}
@@ -666,32 +859,58 @@ function OrderTable({
   onAdvance: (id: string) => void;
 }) {
   return (
-    <div className="order-table">
-      <div className="order-head" aria-hidden="true">
-        <span>Mã đơn</span>
-        <span>Khách hàng</span>
-        <span>Tổng</span>
-        <span>Trạng thái</span>
-        <span>Thao tác</span>
-      </div>
-      {orders.map((order) => (
-        <article key={order.id}>
-          <strong data-label="Mã đơn">{order.id}</strong>
-          <span data-label="Khách hàng">{order.customer}</span>
-          <span data-label="Tổng">{formatMoney(order.total)}</span>
-          <span data-label="Trạng thái" className={`status-badge status-${order.status.toLocaleLowerCase("vi").replaceAll(" ", "-")}`}>
-            {order.status}
-          </span>
-          <button
-            type="button"
-            disabled={order.status === "Hoàn tất"}
-            onClick={() => onAdvance(order.id)}
-          >
-            {order.status === "Hoàn tất" ? "Đã xong" : "Chuyển bước"}
-            <ChevronRight size={15} />
-          </button>
-        </article>
-      ))}
+    <div
+      className="order-table"
+      role="region"
+      aria-label="Bảng đơn hàng, có thể cuộn ngang"
+      tabIndex={0}
+    >
+      <table>
+        <caption className="sr-only">
+          Danh sách đơn hàng, khách hàng, tổng tiền, trạng thái và thao tác
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Mã đơn</th>
+            <th scope="col">Khách hàng</th>
+            <th scope="col">Tổng</th>
+            <th scope="col">Trạng thái</th>
+            <th scope="col">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => (
+            <tr key={order.id}>
+              <th scope="row">{order.id}</th>
+              <td>{order.customer}</td>
+              <td>{formatMoney(order.total)}</td>
+              <td>
+                <span
+                  className={`status-badge status-${order.status.toLocaleLowerCase("vi").replaceAll(" ", "-")}`}
+                  aria-live="polite"
+                >
+                  {order.status}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  disabled={order.status === "Hoàn tất"}
+                  aria-label={
+                    order.status === "Hoàn tất"
+                      ? `${order.id} đã hoàn tất`
+                      : `Chuyển ${order.id} sang bước tiếp theo`
+                  }
+                  onClick={() => onAdvance(order.id)}
+                >
+                  {order.status === "Hoàn tất" ? "Đã xong" : "Chuyển bước"}
+                  <ChevronRight size={15} aria-hidden="true" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 {
-  "date": "2026-07-31",
+  "date": "2026-08-01",
   "framework": "Vinext / Next.js App Router",
   "font_stack": "Cormorant Garamond + IBM Plex Sans via next/font",
   "palette": "OKLCH tokens in tokens.css",
-  "motion": "CSS-only, motion-cut Atelier stance",
+  "motion": "CSS-only, deliberate motion-on with reduced-motion fallbacks",
   "spacing": "4pt semantic scale",
-  "source": "fresh starter scaffold"
+  "source": "existing Vinext app audited and redesigned in place"
 }

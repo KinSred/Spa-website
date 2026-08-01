@@ -52,8 +52,14 @@
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-micro: 120ms;
+  --dur-exit: 210ms;
   --dur-short: 280ms;
   --dur-long: 460ms;
+  --dur-reduced: 120ms;
+  --motion-shift: var(--space-xs);
+  --motion-press-scale: 0.985;
+  --motion-panel-scale: 0.985;
+  --stagger-step: 60ms;
 
   --rule-hair: 1px;
   --rule-strong: 2px;
@@ -61,6 +67,8 @@
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --control-h: 2.75rem;
+  --banner-h: 2.75rem;
+  --nav-h: 4.75rem;
   --page-gutter: clamp(1rem, 4vw, 4rem);
   --page-max: 90rem;
 

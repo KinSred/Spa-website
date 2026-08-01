@@ -1,10 +1,10 @@
-/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V5
- * Hallmark · genre: editorial · macrostructure: Catalogue · tone: luxury
+/* Hallmark · designed-as-app · pre-emit critique: P5 H5 E5 S5 R5 V5
+ * Hallmark · macrostructure: Catalogue / Split Studio / Workbench · tone: luxury
  * theme: Atelier · anchor hue: wine · enrichment: E8 Hero Photography
- * nav: N11 Mega-menu (3 columns, promo cell, dim scrim, click-only)
- * footer: Ft5 Statement (38ch, wordmark under, hairline meta)
+ * nav: N12 Announcement + retract (click dismiss, observer compact state)
+ * footer: Ft1 Mast-headed (statement, wordmark, hairline meta)
  * audience: real spa customers · use: buy products + book treatments
- * contrast: pass (40–41) · slop: pass (42–45)
+ * contrast: pass (40–41) · slop: pass (58/58; 42–45)
  * honest: pass (46) · chrome: pass (47) · tokens: pass (48)
  * responsive: pass (49) · mobile: pass (34, 49, 50–57) · icons: pass (30)
  */
@@ -22,6 +22,10 @@ body {
   margin: 0;
   overflow-x: clip;
   scroll-behavior: smooth;
+}
+
+body.is-scroll-locked {
+  overflow: clip;
 }
 
 body {
@@ -130,6 +134,14 @@ button:disabled {
 
 button[aria-busy="true"] {
   cursor: wait;
+}
+
+button:not(:disabled):not(.nav-scrim):not(.drawer-scrim):not(.admin-scrim):active {
+  transform: scale(var(--motion-press-scale));
+}
+
+a:active {
+  opacity: 0.72;
 }
 
 .sr-only {
@@ -242,10 +254,7 @@ button[aria-busy="true"] {
   background: var(--color-paper);
   color: var(--color-ink);
   cursor: pointer;
-  transition:
-    background-color var(--dur-short) var(--ease-out),
-    color var(--dur-short) var(--ease-out),
-    transform var(--dur-micro) var(--ease-out);
+  transition: transform var(--dur-micro) var(--ease-out);
 }
 
 .icon-button:active {
@@ -358,9 +367,7 @@ button[aria-busy="true"] {
   background: var(--color-accent);
   color: var(--color-accent-ink);
   cursor: pointer;
-  transition:
-    background-color var(--dur-short) var(--ease-out),
-    transform var(--dur-micro) var(--ease-out);
+  transition: transform var(--dur-micro) var(--ease-out);
 }
 
 .primary-action:active,
@@ -558,7 +565,7 @@ button[aria-busy="true"] {
   background: var(--color-surface);
   color: var(--color-ink);
   outline-color: var(--color-transparent);
-  transition: background-color var(--dur-short) var(--ease-out);
+  transition: none;
 }
 
 .catalogue-tools input,
@@ -723,10 +730,7 @@ button[aria-busy="true"] {
   background: var(--color-transparent);
   color: var(--color-ink);
   cursor: pointer;
-  transition:
-    background-color var(--dur-short) var(--ease-out),
-    color var(--dur-short) var(--ease-out),
-    transform var(--dur-micro) var(--ease-out);
+  transition: transform var(--dur-micro) var(--ease-out);
 }
 
 .empty-results {
@@ -1289,7 +1293,7 @@ button[aria-busy="true"] {
   transition:
     opacity var(--dur-short) var(--ease-out),
     transform var(--dur-short) var(--ease-out),
-    visibility var(--dur-short) var(--ease-out);
+    visibility 0s linear var(--dur-short);
 }
 
 .chat-panel.is-open {
@@ -2321,21 +2325,21 @@ button[aria-busy="true"] {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .icon-button:hover,
-  .reset-filter:hover,
-  .order-table article > button:hover,
-  .appointment-list article > button:hover,
-  .visibility-button:hover {
+  .icon-button:not(:disabled):hover,
+  .reset-filter:not(:disabled):hover,
+  .order-table article > button:not(:disabled):hover,
+  .appointment-list article > button:not(:disabled):hover,
+  .visibility-button:not(:disabled):hover {
     background: var(--color-ink);
     color: var(--color-paper);
   }
 
-  .primary-action:hover,
-  .checkout-button:hover,
-  .detail-add:hover,
-  .admin-intro > button:hover,
-  .admin-list-section > header > button:hover,
-  .report-page > header > button:hover {
+  .primary-action:not(:disabled):hover,
+  .checkout-button:not(:disabled):hover,
+  .detail-add:not(:disabled):hover,
+  .admin-intro > button:not(:disabled):hover,
+  .admin-list-section > header > button:not(:disabled):hover,
+  .report-page > header > button:not(:disabled):hover {
     background: var(--color-ink);
   }
 
@@ -2344,7 +2348,7 @@ button[aria-busy="true"] {
     transform: scale(1.02);
   }
 
-  .add-button:hover {
+  .add-button:not(:disabled):hover {
     background: var(--color-accent);
     color: var(--color-accent-ink);
   }
@@ -2529,7 +2533,7 @@ button[aria-busy="true"] {
     transition:
       opacity var(--dur-short) var(--ease-out),
       transform var(--dur-short) var(--ease-out),
-      visibility var(--dur-short) var(--ease-out);
+      visibility 0s linear var(--dur-short);
   }
 
   .mega-panel.is-open {
@@ -2759,6 +2763,895 @@ button[aria-busy="true"] {
   }
 }
 
+/* Luxury interaction upgrade · Catalogue / Split Studio / Workbench */
+.nav-sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--rule-hair);
+  height: var(--rule-hair);
+  pointer-events: none;
+}
+
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  transform: translateY(0);
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.site-header.is-compact,
+.site-header.is-banner-dismissed {
+  transform: translateY(calc(var(--banner-h) * -1));
+}
+
+.site-shell > main {
+  padding-top: calc(var(--banner-h) + var(--nav-h));
+}
+
+.site-shell.announcement-dismissed > main {
+  padding-top: var(--nav-h);
+}
+
+.catalogue-section,
+.treatment-section,
+.journal-section {
+  scroll-margin-top: calc(var(--nav-h) + var(--space-lg));
+}
+
+.announcement {
+  height: var(--banner-h);
+  min-height: var(--banner-h);
+  padding-block: 0;
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.announcement > div,
+.announcement button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.announcement > div {
+  flex: none;
+  gap: var(--space-sm);
+}
+
+.announcement button {
+  min-height: var(--banner-h);
+  gap: var(--space-2xs);
+}
+
+.announcement .announcement-close {
+  width: var(--banner-h);
+  height: var(--banner-h);
+  justify-content: center;
+  border-bottom: 0;
+}
+
+.site-nav {
+  position: relative;
+  top: auto;
+  z-index: var(--z-raised);
+}
+
+.nav-inner {
+  min-height: var(--nav-h);
+}
+
+.nav-chevron {
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.nav-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.mobile-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  pointer-events: none;
+  max-height: calc(100dvh - var(--nav-h) - var(--banner-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateY(calc(var(--motion-shift) * -1));
+  transition:
+    opacity var(--dur-exit) var(--ease-in),
+    transform var(--dur-exit) var(--ease-in);
+}
+
+.mobile-menu.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition-duration: var(--dur-short);
+  transition-timing-function: var(--ease-out);
+}
+
+.nav-scrim,
+.drawer-scrim,
+.admin-scrim {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-exit) var(--ease-in),
+    visibility 0s linear var(--dur-exit);
+}
+
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-dropdown) - 1);
+  display: block;
+  border: 0;
+  background: var(--color-overlay);
+}
+
+.nav-scrim.is-open,
+.drawer-scrim.is-open,
+.admin-scrim.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity var(--dur-short) var(--ease-out),
+    visibility 0s linear 0s;
+}
+
+.hero {
+  position: relative;
+  min-height: auto;
+  padding: var(--space-lg) var(--page-gutter) var(--space-3xl);
+  align-items: stretch;
+  gap: 0;
+}
+
+.hero-media {
+  min-height: clamp(25rem, 67dvh, 42rem);
+  animation: atelier-reveal var(--dur-long) var(--ease-out) both;
+}
+
+.hero-media img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: cover;
+  object-position: 64% center;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: var(--z-raised);
+  max-width: none;
+  padding: var(--space-xl);
+  border: var(--rule-hair) solid var(--color-rule);
+  background: var(--color-surface);
+  animation: atelier-reveal var(--dur-long) var(--ease-out) var(--stagger-step) both;
+}
+
+.hero-register {
+  display: grid;
+  grid-template-columns: auto minmax(2rem, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.hero-register i {
+  height: var(--rule-hair);
+  background: var(--color-rule);
+}
+
+.hero h1 {
+  max-width: 10ch;
+}
+
+.site-footer {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.icon-button,
+.primary-action,
+.add-button,
+.checkout-button,
+.detail-add,
+.chat-trigger,
+.mobile-booking-bar button,
+.admin-intro > button,
+.admin-list-section > header > button,
+.report-page > header > button,
+.visibility-button,
+.appointment-list article > button,
+.customer-list article > button,
+.order-table button {
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+
+.catalogue-tools input,
+.catalogue-tools select,
+.chat-panel input,
+.booking-form-grid input,
+.booking-form-grid select,
+.booking-form-grid textarea {
+  transition: none;
+}
+
+.coupon-row input,
+.admin-search input,
+.customer-list textarea {
+  transition: none;
+}
+
+.active-filters {
+  min-height: 0;
+  margin-top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.active-filters.has-items {
+  margin-top: var(--space-md);
+}
+
+.active-filters button {
+  max-width: 100%;
+  min-height: var(--control-h);
+  padding: 0 var(--space-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  border: var(--rule-hair) solid var(--color-rule-2);
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+}
+
+.active-filters button svg {
+  flex: none;
+}
+
+.reset-filter:disabled {
+  opacity: 0.42;
+}
+
+.add-button.is-success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.bag-button.is-pulsing > span {
+  animation: commerce-pulse var(--dur-long) var(--ease-out) both;
+}
+
+.quantity-control output {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.coupon-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.coupon-success {
+  color: var(--color-success);
+  font-size: var(--text-xs);
+}
+
+.cart-drawer {
+  transition: transform var(--dur-short) var(--ease-in);
+}
+
+.cart-drawer.is-open {
+  transition-duration: var(--dur-long);
+  transition-timing-function: var(--ease-out);
+}
+
+.booking-dialog[open] {
+  animation: surface-reveal var(--dur-short) var(--ease-out) both;
+}
+
+.booking-dialog[open]::backdrop {
+  animation: scrim-reveal var(--dur-short) var(--ease-out) both;
+}
+
+.booking-dialog header p {
+  max-width: 52ch;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.booking-confirmation {
+  min-height: 23rem;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+
+.booking-confirmation > span {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: grid;
+  place-items: center;
+  border: var(--rule-hair) solid var(--color-success);
+  border-radius: 50%;
+  color: var(--color-success);
+}
+
+.booking-confirmation > p {
+  color: var(--color-success);
+  font-size: var(--text-sm);
+}
+
+.booking-confirmation h3 {
+  max-width: 16ch;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+}
+
+.booking-confirmation h3:focus-visible {
+  outline: var(--rule-strong) solid var(--color-focus);
+  outline-offset: var(--space-2xs);
+}
+
+.booking-confirmation small {
+  max-width: 49ch;
+  color: var(--color-muted);
+}
+
+.booking-confirmation .primary-action {
+  margin-top: var(--space-sm);
+}
+
+.chat-panel {
+  height: min(
+    29rem,
+    calc(100dvh - (var(--control-h) * 2) - var(--space-3xl))
+  );
+  pointer-events: none;
+  transition:
+    opacity var(--dur-exit) var(--ease-in),
+    transform var(--dur-exit) var(--ease-in),
+    visibility 0s linear var(--dur-exit);
+}
+
+.chat-panel.is-open {
+  pointer-events: auto;
+  transition:
+    opacity var(--dur-short) var(--ease-out),
+    transform var(--dur-short) var(--ease-out),
+    visibility 0s linear 0s;
+}
+
+.typing-message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.typing-message > span:not(.sr-only) {
+  width: var(--space-2xs);
+  height: var(--space-2xs);
+  border-radius: 50%;
+  background: var(--color-muted);
+}
+
+.typing-message > span:nth-child(2) {
+  opacity: 0.62;
+}
+
+.typing-message > span:nth-child(3) {
+  opacity: 0.34;
+}
+
+.toast,
+.admin-toast {
+  animation: commerce-feedback var(--dur-short) var(--ease-out) both;
+}
+
+.toast-alert {
+  background: var(--color-error);
+  color: var(--color-paper);
+}
+
+.detail-view .detail-image,
+.detail-view .detail-copy {
+  animation: detail-reveal var(--dur-long) var(--ease-out) both;
+}
+
+.detail-view .detail-copy {
+  animation-delay: var(--stagger-step);
+}
+
+.detail-add {
+  transition:
+    opacity var(--dur-micro) var(--ease-out),
+    transform var(--dur-micro) var(--ease-out);
+}
+
+.detail-purchase-meta {
+  margin-top: calc(var(--space-lg) * -1);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.detail-purchase-meta a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-accent);
+  border-bottom: var(--rule-hair) solid var(--color-rule-2);
+}
+
+.admin-sidebar {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transition: transform var(--dur-short) var(--ease-in);
+}
+
+.admin-sidebar.is-open {
+  transition-duration: var(--dur-long);
+  transition-timing-function: var(--ease-out);
+}
+
+.admin-main {
+  container-type: inline-size;
+}
+
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.admin-topbar h1:focus-visible {
+  outline: var(--rule-strong) solid var(--color-focus);
+  outline-offset: var(--space-2xs);
+}
+
+.admin-view {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-lg);
+  animation: admin-view-reveal var(--dur-short) var(--ease-out) both;
+}
+
+.metric-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.metric-grid .metric-featured {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.overview-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.revenue-card,
+.low-stock-card {
+  padding: var(--space-lg);
+}
+
+.admin-list-section,
+.report-page {
+  padding: 0;
+  border: 0;
+  background: var(--color-transparent);
+}
+
+.customer-list article {
+  padding-inline: 0;
+  border: 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+  background: var(--color-transparent);
+}
+
+.bar-chart i {
+  height: 100%;
+  min-height: 0;
+  transform: scaleY(var(--bar-scale));
+  transform-origin: bottom;
+  animation: chart-rise var(--dur-long) var(--ease-out) both;
+}
+
+.report-breakdown i b,
+.report-share i {
+  width: 100%;
+  transform: scaleX(var(--share-scale));
+  transform-origin: left;
+  animation: report-rise var(--dur-long) var(--ease-out) both;
+}
+
+.order-table {
+  display: block;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.order-table table {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.order-table th,
+.order-table td {
+  padding: var(--space-sm) var(--space-xs);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.order-table thead th {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  border-bottom-color: var(--color-rule-2);
+}
+
+.order-table tbody th {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.order-table th:nth-child(3),
+.order-table td:nth-child(3) {
+  text-align: right;
+}
+
+.order-table th:last-child,
+.order-table td:last-child {
+  text-align: right;
+}
+
+.order-table button {
+  min-height: var(--control-h);
+  padding: 0 var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  border: var(--rule-hair) solid var(--color-rule-2);
+  background: var(--color-paper);
+  cursor: pointer;
+}
+
+.order-table:focus-visible,
+.report-table-region:focus-visible {
+  outline: var(--rule-strong) solid var(--color-focus);
+  outline-offset: var(--space-2xs);
+}
+
+.report-table-region {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+table.report-breakdown {
+  width: 100%;
+  min-width: 34rem;
+  display: table;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.report-breakdown th,
+.report-breakdown td {
+  padding: var(--space-sm) var(--space-xs);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.report-breakdown thead th {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.report-breakdown tbody th {
+  font-variant-numeric: tabular-nums;
+}
+
+.report-share {
+  display: grid;
+  grid-template-columns: minmax(5rem, 1fr) 2.5rem;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.report-share i {
+  height: var(--space-xs);
+  display: block;
+  background: var(--color-accent);
+}
+
+.report-share small {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.stock-control output {
+  text-align: center;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-control output.is-low {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.admin-result-count {
+  margin-top: calc(var(--space-md) * -1);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.admin-empty-state {
+  min-height: 14rem;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-sm);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.admin-empty-state button {
+  min-height: var(--control-h);
+  padding: 0;
+  border: 0;
+  border-bottom: var(--rule-hair) solid var(--color-rule-2);
+  background: var(--color-transparent);
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.admin-toast button {
+  width: var(--control-h);
+  height: var(--control-h);
+}
+
+.customer-list article > button.is-saved {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.inventory-name small,
+.appointment-time,
+.report-breakdown strong,
+.report-summary strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.status-đang-gói {
+  border-color: var(--color-warning);
+  color: var(--color-warning-ink);
+}
+
+.status-đã-gửi {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+@container (min-width: 70rem) {
+  .metric-grid {
+    grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr));
+  }
+
+  .overview-grid {
+    grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr);
+  }
+}
+
+@container (min-width: 30rem) and (max-width: 69.99rem) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primary-action:not(:disabled):hover,
+  .add-button:not(:disabled):hover,
+  .checkout-button:not(:disabled):hover,
+  .detail-add:not(:disabled):hover,
+  .chat-trigger:not(:disabled):hover,
+  .mobile-booking-bar button:not(:disabled):hover,
+  .admin-intro > button:not(:disabled):hover,
+  .admin-list-section > header > button:not(:disabled):hover,
+  .report-page > header > button:not(:disabled):hover,
+  .order-table button:not(:disabled):hover {
+    transform: translateY(calc(var(--space-3xs) * -1));
+  }
+
+  .product-image:hover img {
+    transform: scale(1.015);
+  }
+}
+
+@media (min-width: 60rem) {
+  .mobile-menu {
+    display: none;
+  }
+
+  .nav-scrim {
+    display: block;
+  }
+
+  .mega-panel {
+    transition:
+      opacity var(--dur-exit) var(--ease-in),
+      transform var(--dur-exit) var(--ease-in),
+      visibility 0s linear var(--dur-exit);
+  }
+
+  .mega-panel.is-open {
+    transition:
+      opacity var(--dur-short) var(--ease-out),
+      transform var(--dur-short) var(--ease-out),
+      visibility 0s linear 0s;
+  }
+
+  .hero {
+    max-width: none;
+    min-height: clamp(46rem, calc(100dvh - var(--banner-h) - var(--nav-h)), 56rem);
+    padding: var(--space-xl) var(--page-gutter) var(--space-3xl);
+    display: block;
+  }
+
+  .hero-media {
+    min-height: clamp(41rem, calc(100dvh - var(--banner-h) - var(--nav-h) - var(--space-xl)), 51rem);
+  }
+
+  .hero-media img {
+    aspect-ratio: auto;
+  }
+
+  .hero-copy {
+    position: absolute;
+    left: clamp(var(--page-gutter), 7vw, 7rem);
+    bottom: clamp(var(--space-2xl), 8vh, var(--space-4xl));
+    width: min(41rem, calc(100% - (var(--page-gutter) * 2)));
+    padding: clamp(var(--space-xl), 3vw, var(--space-2xl));
+  }
+
+  .hero-note {
+    max-width: 35rem;
+  }
+
+  .admin-sidebar {
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 24rem) {
+  .detail-purchase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-add {
+    padding-inline: var(--space-md);
+    white-space: nowrap;
+  }
+}
+
+@keyframes atelier-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-shift));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes surface-reveal {
+  from {
+    opacity: 0;
+    transform: scale(var(--motion-panel-scale));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scrim-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes commerce-pulse {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes commerce-feedback {
+  from {
+    opacity: 0;
+    transform: translate(-50%, var(--motion-shift));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes detail-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-shift));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-view-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes chart-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(var(--bar-scale));
+  }
+}
+
+@keyframes report-rise {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--share-scale));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -2767,17 +3660,27 @@ button[aria-busy="true"] {
   *,
   *::before,
   *::after {
-    animation-duration: var(--dur-micro) !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: var(--dur-micro) !important;
+    animation: none !important;
+    transition: none !important;
     scroll-behavior: auto !important;
   }
 
-  .product-image img,
-  .cart-drawer,
-  .chat-panel,
-  .mega-panel,
-  .admin-sidebar {
+  .hero-media,
+  .hero-copy,
+  .detail-view .detail-image,
+  .detail-view .detail-copy,
+  .admin-view,
+  .booking-dialog[open] {
+    opacity: 1;
     transform: none;
+  }
+
+  .bar-chart i {
+    transform: scaleY(var(--bar-scale));
+  }
+
+  .report-breakdown i b,
+  .report-share i {
+    transform: scaleX(var(--share-scale));
   }
 }

@@ -28,6 +28,14 @@ type CartLine = {
   quantity: number;
 };
 
+type ToastMessage = {
+  id: number;
+  message: string;
+  tone: "status" | "alert";
+};
+
+type BookingState = "idle" | "submitting" | "confirmed";
+
 const skinOptions = ["Tất cả", "Mọi loại da", "Da khô", "Da dầu", "Da nhạy cảm"];
 const concernOptions = [
   "Tất cả nhu cầu",
@@ -43,6 +51,7 @@ export default function SpaCommerce() {
   const [concern, setConcern] = useState("Tất cả nhu cầu");
   const [price, setPrice] = useState("all");
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [cartHydrated, setCartHydrated] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
@@ -50,7 +59,14 @@ export default function SpaCommerce() {
   const [coupon, setCoupon] = useState("");
   const [couponValid, setCouponValid] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [announcementVisible, setAnnouncementVisible] = useState(true);
+  const [navCompact, setNavCompact] = useState(false);
+  const [couponCopied, setCouponCopied] = useState(false);
+  const [addedProductId, setAddedProductId] = useState<number | null>(null);
+  const [bagPulse, setBagPulse] = useState(false);
+  const [chatTyping, setChatTyping] = useState(false);
+  const [bookingState, setBookingState] = useState<BookingState>("idle");
   const [messages, setMessages] = useState([
     {
       from: "advisor",
@@ -58,41 +74,157 @@ export default function SpaCommerce() {
     },
   ]);
   const bookingDialog = useRef<HTMLDialogElement>(null);
+  const bookingService = useRef<HTMLSelectElement>(null);
+  const bookingOpener = useRef<HTMLElement | null>(null);
+  const navSentinel = useRef<HTMLSpanElement>(null);
+  const cartTrigger = useRef<HTMLButtonElement>(null);
+  const wordmark = useRef<HTMLAnchorElement>(null);
+  const cartClose = useRef<HTMLButtonElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const mobileMenu = useRef<HTMLElement>(null);
+  const megaTrigger = useRef<HTMLButtonElement>(null);
+  const chatTrigger = useRef<HTMLButtonElement>(null);
+  const chatInput = useRef<HTMLInputElement>(null);
+  const messagesEnd = useRef<HTMLSpanElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const skinSelect = useRef<HTMLSelectElement>(null);
+  const concernSelect = useRef<HTMLSelectElement>(null);
+  const priceSelect = useRef<HTMLSelectElement>(null);
+  const addedTimeout = useRef<number | null>(null);
+  const bagTimeout = useRef<number | null>(null);
+  const copyTimeout = useRef<number | null>(null);
+  const checkoutTimeout = useRef<number | null>(null);
+  const chatTimeout = useRef<number | null>(null);
+  const bookingTimeout = useRef<number | null>(null);
+  const bookingConfirmation = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("tinh-cart");
+    let initialCart: CartLine[] = [];
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as { id: number; quantity: number }[];
-        const timeout = window.setTimeout(() => {
-          setCart(
-            parsed
-              .map((line) => ({
-                product: products.find((product) => product.id === line.id)!,
-                quantity: line.quantity,
-              }))
-              .filter((line) => line.product),
-          );
-        }, 0);
-        return () => window.clearTimeout(timeout);
+        const parsed: unknown = JSON.parse(saved);
+        if (!Array.isArray(parsed)) throw new Error("Invalid cart payload");
+        initialCart = parsed.flatMap((candidate) => {
+          if (!candidate || typeof candidate !== "object") return [];
+          const line = candidate as { id?: unknown; quantity?: unknown };
+          const product = products.find((item) => item.id === Number(line.id));
+          const requested = Number(line.quantity);
+          if (!product || !Number.isFinite(requested) || requested <= 0) return [];
+          return [
+            {
+              product,
+              quantity: Math.min(product.stock, Math.max(1, Math.floor(requested))),
+            },
+          ];
+        });
       } catch {
         window.localStorage.removeItem("tinh-cart");
       }
     }
+    const frame = window.requestAnimationFrame(() => {
+      setCart(initialCart);
+      setCartHydrated(true);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
+    if (!cartHydrated) return;
     window.localStorage.setItem(
       "tinh-cart",
       JSON.stringify(cart.map((line) => ({ id: line.product.id, quantity: line.quantity }))),
     );
-  }, [cart]);
+  }, [cart, cartHydrated]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("cart") !== "open") return;
+    url.searchParams.delete("cart");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    const frame = window.requestAnimationFrame(() => {
+      setCartOpen(true);
+      window.requestAnimationFrame(() => cartClose.current?.focus());
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
-    const timeout = window.setTimeout(() => setToast(""), 3500);
+    const timeout = window.setTimeout(() => setToast(null), 3500);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    const node = navSentinel.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setNavCompact(!entry.isIntersecting),
+      { threshold: 0.01 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("is-scroll-locked", cartOpen || mobileOpen);
+    return () => document.body.classList.remove("is-scroll-locked");
+  }, [cartOpen, mobileOpen]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 60rem)");
+    const resetNavigation = (event: MediaQueryListEvent) => {
+      if (event.matches) setMobileOpen(false);
+      else setMegaOpen(false);
+    };
+    desktop.addEventListener("change", resetNavigation);
+    return () => desktop.removeEventListener("change", resetNavigation);
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (cartOpen) {
+        setCartOpen(false);
+        cartTrigger.current?.focus();
+      } else if (mobileOpen) {
+        setMobileOpen(false);
+        menuTrigger.current?.focus();
+      } else if (megaOpen) {
+        setMegaOpen(false);
+        megaTrigger.current?.focus();
+      } else if (chatOpen) {
+        setChatOpen(false);
+        chatTrigger.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [cartOpen, chatOpen, megaOpen, mobileOpen]);
+
+  useEffect(() => {
+    if (chatOpen) messagesEnd.current?.scrollIntoView({ block: "nearest" });
+  }, [chatOpen, chatTyping, messages]);
+
+  useEffect(() => {
+    if (bookingState === "confirmed") bookingConfirmation.current?.focus();
+  }, [bookingState]);
+
+  useEffect(
+    () => () => {
+      [
+        addedTimeout.current,
+        bagTimeout.current,
+        copyTimeout.current,
+        checkoutTimeout.current,
+        chatTimeout.current,
+        bookingTimeout.current,
+      ].forEach((timeout) => {
+        if (timeout !== null) window.clearTimeout(timeout);
+      });
+    },
+    [],
+  );
 
   const filteredProducts = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("vi");
@@ -122,61 +254,193 @@ export default function SpaCommerce() {
     0,
   );
   const discount = couponValid ? subtotal * 0.1 : 0;
+  const hasActiveFilters =
+    Boolean(query.trim()) ||
+    skin !== "Tất cả" ||
+    concern !== "Tất cả nhu cầu" ||
+    price !== "all";
+
+  const announce = (message: string, tone: ToastMessage["tone"] = "status") => {
+    setToast({ id: Date.now(), message, tone });
+  };
+
+  const closeCommerceSurfaces = () => {
+    setCartOpen(false);
+    setMobileOpen(false);
+    setMegaOpen(false);
+    setChatOpen(false);
+  };
+
+  const openCart = () => {
+    setMobileOpen(false);
+    setMegaOpen(false);
+    setChatOpen(false);
+    setCartOpen(true);
+    window.requestAnimationFrame(() => cartClose.current?.focus());
+  };
+
+  const closeCart = () => {
+    setCartOpen(false);
+    cartTrigger.current?.focus();
+  };
+
+  const toggleMobileMenu = () => {
+    const next = !mobileOpen;
+    closeCommerceSurfaces();
+    setMobileOpen(next);
+    if (next) {
+      window.requestAnimationFrame(() =>
+        mobileMenu.current?.querySelector<HTMLElement>("a, button")?.focus(),
+      );
+    }
+  };
+
+  const closeMobileMenu = () => {
+    setMobileOpen(false);
+    menuTrigger.current?.focus();
+  };
+
+  const toggleChat = () => {
+    const next = !chatOpen;
+    closeCommerceSurfaces();
+    setChatOpen(next);
+    if (next) window.requestAnimationFrame(() => chatInput.current?.focus());
+    else chatTrigger.current?.focus();
+  };
+
+  const closeChat = () => {
+    setChatOpen(false);
+    chatTrigger.current?.focus();
+  };
+
+  const trapCartFocus = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!cartOpen || event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  const trapMobileMenuFocus = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!mobileOpen || event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   const addToCart = (product: Product) => {
     setCart((current) => {
       const line = current.find((item) => item.product.id === product.id);
       if (line) {
         return current.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            item.product.id === product.id
+            ? {
+                ...item,
+                quantity: Math.min(item.product.stock, item.quantity + 1),
+              }
             : item,
         );
       }
       return [...current, { product, quantity: 1 }];
     });
-    setToast(`${product.name} đã được thêm vào giỏ.`);
+    setAddedProductId(product.id);
+    setBagPulse(false);
+    window.requestAnimationFrame(() => setBagPulse(true));
+    if (addedTimeout.current !== null) window.clearTimeout(addedTimeout.current);
+    if (bagTimeout.current !== null) window.clearTimeout(bagTimeout.current);
+    addedTimeout.current = window.setTimeout(() => setAddedProductId(null), 1800);
+    bagTimeout.current = window.setTimeout(() => setBagPulse(false), 520);
   };
 
   const updateQuantity = (id: number, delta: number) => {
+    const removesFocusedLine =
+      delta < 0 && cart.find((line) => line.product.id === id)?.quantity === 1;
     setCart((current) =>
       current
         .map((line) =>
           line.product.id === id
-            ? { ...line, quantity: Math.max(0, line.quantity + delta) }
+            ? {
+                ...line,
+                quantity: Math.min(
+                  line.product.stock,
+                  Math.max(0, line.quantity + delta),
+                ),
+              }
             : line,
         )
         .filter((line) => line.quantity > 0),
     );
+    if (removesFocusedLine) {
+      window.requestAnimationFrame(() => cartClose.current?.focus());
+    }
   };
 
   const applyCoupon = () => {
     const valid = coupon.trim().toUpperCase() === "TINH10";
     setCouponValid(valid);
-    setToast(valid ? "Đã áp dụng TINH10 — giảm 10%." : "Mã chưa đúng. Thử TINH10.");
+    if (!valid) announce("Mã chưa đúng. Thử TINH10.", "alert");
   };
 
   const checkout = () => {
     if (!cart.length) return;
     setCheckingOut(true);
-    window.setTimeout(() => {
+    if (checkoutTimeout.current !== null) window.clearTimeout(checkoutTimeout.current);
+    checkoutTimeout.current = window.setTimeout(() => {
       setCheckingOut(false);
       setCart([]);
+      setCoupon("");
+      setCouponValid(false);
       setCartOpen(false);
-      setToast("Đơn hàng demo đã được tạo để quản trị viên xử lý.");
+      cartTrigger.current?.focus();
+      announce("Đơn hàng demo đã được tạo để quản trị viên xử lý.");
     }, 700);
   };
 
   const openBooking = () => {
-    setMobileOpen(false);
+    const active = document.activeElement as HTMLElement;
+    bookingOpener.current = active.closest(".mobile-menu")
+      ? menuTrigger.current
+      : active.closest(".mega-panel")
+        ? megaTrigger.current
+        : active;
+    closeCommerceSurfaces();
+    setBookingState("idle");
     bookingDialog.current?.showModal();
+    window.requestAnimationFrame(() => bookingService.current?.focus());
   };
 
   const submitBooking = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    bookingDialog.current?.close();
-    setToast("Lịch hẹn đã được ghi nhận. TĨNH sẽ gọi xác nhận khung giờ.");
-    event.currentTarget.reset();
+    const form = event.currentTarget;
+    setBookingState("submitting");
+    if (bookingTimeout.current !== null) window.clearTimeout(bookingTimeout.current);
+    bookingTimeout.current = window.setTimeout(() => {
+      setBookingState("confirmed");
+      form.reset();
+    }, 650);
   };
 
   const sendMessage = (event: FormEvent<HTMLFormElement>) => {
@@ -185,8 +449,11 @@ export default function SpaCommerce() {
     const text = String(form.get("message") || "").trim();
     if (!text) return;
     setMessages((current) => [...current, { from: "user", text }]);
+    setChatTyping(true);
     event.currentTarget.reset();
-    window.setTimeout(() => {
+    if (chatTimeout.current !== null) window.clearTimeout(chatTimeout.current);
+    chatTimeout.current = window.setTimeout(() => {
+      setChatTyping(false);
       setMessages((current) => [
         ...current,
         {
@@ -197,24 +464,82 @@ export default function SpaCommerce() {
     }, 500);
   };
 
-  return (
-    <div className="site-shell">
-      <div className="announcement">
-        <span>Miễn phí giao hàng từ 1.200.000 ₫</span>
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard.writeText("TINH10");
-            setToast("Đã sao chép mã TINH10.");
-          }}
-        >
-          TINH10 · Sao chép mã
-        </button>
-      </div>
+  const copyCoupon = async () => {
+    try {
+      await navigator.clipboard.writeText("TINH10");
+      setCouponCopied(true);
+      if (copyTimeout.current !== null) window.clearTimeout(copyTimeout.current);
+      copyTimeout.current = window.setTimeout(() => setCouponCopied(false), 1800);
+    } catch {
+      announce("Không thể sao chép tự động. Mã là TINH10.", "alert");
+    }
+  };
 
-      <header className="site-nav">
+  const closeMegaAfterFilter = () => {
+    setMegaOpen(false);
+    window.requestAnimationFrame(() => megaTrigger.current?.focus());
+  };
+
+  const dismissAnnouncement = () => {
+    setAnnouncementVisible(false);
+    window.requestAnimationFrame(() => wordmark.current?.focus());
+  };
+
+  const resetFilters = () => {
+    setQuery("");
+    setSkin("Tất cả");
+    setConcern("Tất cả nhu cầu");
+    setPrice("all");
+  };
+
+  const returnFilterFocus = (control: HTMLElement | null) => {
+    window.requestAnimationFrame(() => control?.focus());
+  };
+
+  return (
+    <div
+      className={`site-shell ${announcementVisible ? "" : "announcement-dismissed"}`}
+    >
+      <span className="nav-sentinel" ref={navSentinel} aria-hidden="true" />
+      <header
+        className={`site-header ${navCompact ? "is-compact" : ""} ${announcementVisible ? "" : "is-banner-dismissed"}`}
+      >
+        <div
+          className={`announcement ${announcementVisible ? "" : "is-dismissed"}`}
+          aria-hidden={!announcementVisible}
+          inert={!announcementVisible}
+        >
+          <span>Miễn phí giao hàng từ 1.200.000 ₫</span>
+          <div>
+            <button type="button" onClick={copyCoupon}>
+              {couponCopied ? (
+                <>
+                  <Check size={14} aria-hidden="true" />
+                  Đã sao chép
+                </>
+              ) : (
+                "TINH10 · Sao chép mã"
+              )}
+            </button>
+            <button
+              className="announcement-close"
+              type="button"
+              aria-label="Ẩn thông báo ưu đãi"
+              onClick={dismissAnnouncement}
+            >
+              <X size={15} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        <div className="site-nav">
         <div className="nav-inner">
-          <Link className="wordmark" href="/" aria-label="TĨNH — Trang chủ">
+          <Link
+            className="wordmark"
+            href="/"
+            ref={wordmark}
+            aria-label="TĨNH — Trang chủ"
+          >
             TĨNH
             <span>skin atelier</span>
           </Link>
@@ -223,12 +548,21 @@ export default function SpaCommerce() {
             <button
               className="nav-link"
               type="button"
+              ref={megaTrigger}
               aria-expanded={megaOpen}
               aria-controls="product-mega-menu"
-              onClick={() => setMegaOpen((open) => !open)}
+              onClick={() => {
+                const next = !megaOpen;
+                closeCommerceSurfaces();
+                setMegaOpen(next);
+              }}
             >
               Khám phá
-              <ChevronDown size={16} aria-hidden="true" />
+              <ChevronDown
+                className={`nav-chevron ${megaOpen ? "is-open" : ""}`}
+                size={16}
+                aria-hidden="true"
+              />
             </button>
             <a className="nav-link" href="#catalogue">
               Sản phẩm
@@ -249,10 +583,13 @@ export default function SpaCommerce() {
               Đặt lịch
             </button>
             <button
-              className="icon-button bag-button"
+              className={`icon-button bag-button ${bagPulse ? "is-pulsing" : ""}`}
               type="button"
+              ref={cartTrigger}
               aria-label={`Mở giỏ hàng, ${cartCount} sản phẩm`}
-              onClick={() => setCartOpen(true)}
+              aria-expanded={cartOpen}
+              aria-controls="shopping-cart"
+              onClick={openCart}
             >
               <ShoppingBag size={20} aria-hidden="true" />
               <span>{cartCount}</span>
@@ -260,11 +597,17 @@ export default function SpaCommerce() {
             <button
               className="icon-button mobile-menu-button"
               type="button"
-              aria-label="Mở menu"
+              ref={menuTrigger}
+              aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
               aria-expanded={mobileOpen}
-              onClick={() => setMobileOpen((open) => !open)}
+              aria-controls="mobile-navigation"
+              onClick={toggleMobileMenu}
             >
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+              {mobileOpen ? (
+                <X size={22} aria-hidden="true" />
+              ) : (
+                <Menu size={22} aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
@@ -273,26 +616,51 @@ export default function SpaCommerce() {
           className={`mega-panel ${megaOpen ? "is-open" : ""}`}
           id="product-mega-menu"
           aria-hidden={!megaOpen}
+          inert={!megaOpen}
         >
           <div className="mega-inner">
             <div>
               <p className="mega-title">Chọn theo làn da</p>
-              <a href="#catalogue" onClick={() => setSkin("Da nhạy cảm")}>
+              <a
+                href="#catalogue"
+                onClick={() => {
+                  setSkin("Da nhạy cảm");
+                  closeMegaAfterFilter();
+                }}
+              >
                 <span>Da nhạy cảm</span>
                 <small>Phục hồi và giảm quá tải routine</small>
               </a>
-              <a href="#catalogue" onClick={() => setSkin("Da dầu")}>
+              <a
+                href="#catalogue"
+                onClick={() => {
+                  setSkin("Da dầu");
+                  closeMegaAfterFilter();
+                }}
+              >
                 <span>Da dầu</span>
                 <small>Làm sạch nhẹ, bảo vệ ráo mặt</small>
               </a>
             </div>
             <div>
               <p className="mega-title">Chọn theo nhu cầu</p>
-              <a href="#catalogue" onClick={() => setConcern("Cấp ẩm")}>
+              <a
+                href="#catalogue"
+                onClick={() => {
+                  setConcern("Cấp ẩm");
+                  closeMegaAfterFilter();
+                }}
+              >
                 <span>Cấp ẩm</span>
                 <small>Cân bằng lại cảm giác khô căng</small>
               </a>
-              <a href="#catalogue" onClick={() => setConcern("Săn chắc")}>
+              <a
+                href="#catalogue"
+                onClick={() => {
+                  setConcern("Săn chắc");
+                  closeMegaAfterFilter();
+                }}
+              >
                 <span>Săn chắc</span>
                 <small>Thiết bị và thao tác tại nhà</small>
               </a>
@@ -306,37 +674,70 @@ export default function SpaCommerce() {
           </div>
         </div>
 
-        {mobileOpen && (
-          <div className="mobile-menu">
-            <a href="#catalogue" onClick={() => setMobileOpen(false)}>
+          <nav
+            className={`mobile-menu ${mobileOpen ? "is-open" : ""}`}
+            id="mobile-navigation"
+            ref={mobileMenu}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Điều hướng di động"
+            aria-hidden={!mobileOpen}
+            inert={!mobileOpen}
+            onKeyDown={trapMobileMenuFocus}
+          >
+            <a href="#catalogue" onClick={closeMobileMenu}>
               Sản phẩm
             </a>
-            <a href="#treatments" onClick={() => setMobileOpen(false)}>
+            <a href="#treatments" onClick={closeMobileMenu}>
               Liệu trình
             </a>
-            <a href="#journal" onClick={() => setMobileOpen(false)}>
+            <a href="#journal" onClick={closeMobileMenu}>
               Kiến thức
             </a>
             <Link href="/admin">Quản trị</Link>
             <button type="button" onClick={openBooking}>
               Đặt lịch tư vấn
             </button>
-          </div>
-        )}
+          </nav>
+        </div>
       </header>
 
-      {megaOpen && (
-        <button
-          className="nav-scrim"
-          type="button"
-          aria-label="Đóng menu"
-          onClick={() => setMegaOpen(false)}
-        />
-      )}
+      <button
+        className={`nav-scrim ${megaOpen || mobileOpen ? "is-open" : ""}`}
+        type="button"
+        aria-label="Đóng menu"
+        aria-hidden={!megaOpen && !mobileOpen}
+        inert={!megaOpen && !mobileOpen}
+        onClick={() => {
+          if (mobileOpen) closeMobileMenu();
+          else {
+            setMegaOpen(false);
+            megaTrigger.current?.focus();
+          }
+        }}
+      />
 
-      <main>
+      <main inert={mobileOpen}>
         <section className="hero">
+          <figure className="hero-media">
+            <Image
+              src="/hero-treatment.webp"
+              alt="Chuyên viên nhỏ serum trong một buổi chăm sóc da tại TĨNH"
+              width={1600}
+              height={833}
+              priority
+              sizes="100vw"
+            />
+            <figcaption>
+              Nghi thức phục hồi · 75 phút · Đặt theo lịch hẹn
+            </figcaption>
+          </figure>
           <div className="hero-copy">
+            <div className="hero-register" aria-hidden="true">
+              <span>01</span>
+              <i />
+              <span>TĨNH / 2026</span>
+            </div>
             <p className="hero-kicker">Mỹ phẩm · Liệu trình · Một hồ sơ da</p>
             <h1>Một nghi thức, hai cách chăm da.</h1>
             <p className="hero-lede">
@@ -359,19 +760,6 @@ export default function SpaCommerce() {
               </span>
             </div>
           </div>
-          <figure className="hero-media">
-            <Image
-              src="/hero-treatment.webp"
-              alt="Chuyên viên nhỏ serum trong một buổi chăm sóc da tại TĨNH"
-              width={1600}
-              height={833}
-              priority
-              sizes="(min-width: 960px) 54vw, 100vw"
-            />
-            <figcaption>
-              Nghi thức phục hồi · 75 phút · Đặt theo lịch hẹn
-            </figcaption>
-          </figure>
         </section>
 
         <section className="continuity">
@@ -404,7 +792,9 @@ export default function SpaCommerce() {
                 Sáu sản phẩm mẫu · giá và tồn kho dùng để trình diễn luồng mua hàng.
               </p>
             </div>
-            <span>{filteredProducts.length} kết quả</span>
+            <span aria-live="polite" aria-atomic="true">
+              {filteredProducts.length} kết quả
+            </span>
           </header>
 
           <div className="catalogue-tools">
@@ -412,6 +802,7 @@ export default function SpaCommerce() {
               <span className="sr-only">Tìm sản phẩm</span>
               <Search size={18} aria-hidden="true" />
               <input
+                ref={searchInput}
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -420,7 +811,11 @@ export default function SpaCommerce() {
             </label>
             <label>
               <span className="sr-only">Loại da</span>
-              <select value={skin} onChange={(event) => setSkin(event.target.value)}>
+              <select
+                ref={skinSelect}
+                value={skin}
+                onChange={(event) => setSkin(event.target.value)}
+              >
                 {skinOptions.map((option) => (
                   <option key={option}>{option}</option>
                 ))}
@@ -429,6 +824,7 @@ export default function SpaCommerce() {
             <label>
               <span className="sr-only">Nhu cầu</span>
               <select
+                ref={concernSelect}
                 value={concern}
                 onChange={(event) => setConcern(event.target.value)}
               >
@@ -439,7 +835,11 @@ export default function SpaCommerce() {
             </label>
             <label>
               <span className="sr-only">Mức giá</span>
-              <select value={price} onChange={(event) => setPrice(event.target.value)}>
+              <select
+                ref={priceSelect}
+                value={price}
+                onChange={(event) => setPrice(event.target.value)}
+              >
                 <option value="all">Mọi mức giá</option>
                 <option value="under700">Dưới 700.000 ₫</option>
                 <option value="700to1000">700.000–1.000.000 ₫</option>
@@ -449,22 +849,82 @@ export default function SpaCommerce() {
             <button
               className="reset-filter"
               type="button"
-              onClick={() => {
-                setQuery("");
-                setSkin("Tất cả");
-                setConcern("Tất cả nhu cầu");
-                setPrice("all");
-              }}
+              disabled={!hasActiveFilters}
+              onClick={resetFilters}
             >
               <SlidersHorizontal size={17} aria-hidden="true" />
               Đặt lại
             </button>
           </div>
 
+          <div
+            className={`active-filters ${hasActiveFilters ? "has-items" : ""}`}
+            aria-label="Bộ lọc đang dùng"
+          >
+            {query.trim() && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  returnFilterFocus(searchInput.current);
+                }}
+              >
+                Tìm: {query.trim()}
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+            {skin !== "Tất cả" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSkin("Tất cả");
+                  returnFilterFocus(skinSelect.current);
+                }}
+              >
+                {skin}
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+            {concern !== "Tất cả nhu cầu" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setConcern("Tất cả nhu cầu");
+                  returnFilterFocus(concernSelect.current);
+                }}
+              >
+                {concern}
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+            {price !== "all" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPrice("all");
+                  returnFilterFocus(priceSelect.current);
+                }}
+              >
+                {price === "under700"
+                  ? "Dưới 700.000 ₫"
+                  : price === "700to1000"
+                    ? "700.000–1.000.000 ₫"
+                    : "Trên 1.000.000 ₫"}
+                <X size={14} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
           {filteredProducts.length ? (
             <div className="product-grid">
-              {filteredProducts.map((product) => (
-                <article className="product-card" key={product.id}>
+              {filteredProducts.map((product) => {
+                const quantityInCart =
+                  cart.find((line) => line.product.id === product.id)?.quantity ?? 0;
+                const atStockLimit = quantityInCart >= product.stock;
+                const justAdded = addedProductId === product.id;
+
+                return (
+                  <article className="product-card" key={product.id}>
                   <Link
                     className="product-image"
                     href={`/san-pham/${product.slug}`}
@@ -491,15 +951,21 @@ export default function SpaCommerce() {
                     <strong>{formatMoney(product.price)}</strong>
                   </div>
                   <button
-                    className="add-button"
+                    className={`add-button ${justAdded ? "is-success" : ""}`}
                     type="button"
+                    disabled={atStockLimit}
                     onClick={() => addToCart(product)}
                   >
-                    Thêm vào giỏ
-                    <Plus size={17} aria-hidden="true" />
+                    {atStockLimit ? "Đã đủ tồn kho" : justAdded ? "Đã thêm" : "Thêm vào giỏ"}
+                    {atStockLimit || justAdded ? (
+                      <Check size={17} aria-hidden="true" />
+                    ) : (
+                      <Plus size={17} aria-hidden="true" />
+                    )}
                   </button>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <div className="empty-results">
@@ -508,12 +974,7 @@ export default function SpaCommerce() {
               <p>Thử bỏ bớt một tiêu chí hoặc đặt lại toàn bộ bộ lọc.</p>
               <button
                 type="button"
-                onClick={() => {
-                  setQuery("");
-                  setSkin("Tất cả");
-                  setConcern("Tất cả nhu cầu");
-                  setPrice("all");
-                }}
+                onClick={resetFilters}
               >
                 Xem tất cả sản phẩm
               </button>
@@ -598,7 +1059,7 @@ export default function SpaCommerce() {
         </section>
       </main>
 
-      <footer className="site-footer">
+      <footer className="site-footer" inert={mobileOpen}>
         <p className="footer-statement">
           Chăm da tại nhà và tại spa nên là một câu chuyện liền mạch.
         </p>
@@ -617,19 +1078,29 @@ export default function SpaCommerce() {
         </div>
       </footer>
 
-      <aside className={`cart-drawer ${cartOpen ? "is-open" : ""}`} aria-hidden={!cartOpen}>
+      <aside
+        className={`cart-drawer ${cartOpen ? "is-open" : ""}`}
+        id="shopping-cart"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-title"
+        aria-hidden={!cartOpen}
+        inert={!cartOpen}
+        onKeyDown={trapCartFocus}
+      >
         <header>
           <div>
-            <span>Giỏ hàng</span>
+            <span id="cart-title">Giỏ hàng</span>
             <strong>{cartCount} sản phẩm</strong>
           </div>
           <button
             className="icon-button"
             type="button"
+            ref={cartClose}
             aria-label="Đóng giỏ hàng"
-            onClick={() => setCartOpen(false)}
+            onClick={closeCart}
           >
-            <X size={21} />
+            <X size={21} aria-hidden="true" />
           </button>
         </header>
 
@@ -646,21 +1117,26 @@ export default function SpaCommerce() {
                 <div>
                   <h3>{line.product.name}</h3>
                   <p>{formatMoney(line.product.price)}</p>
-                  <div className="quantity-control">
+                  <div
+                    className="quantity-control"
+                    role="group"
+                    aria-label={`Số lượng ${line.product.name}`}
+                  >
                     <button
                       type="button"
                       aria-label={`Giảm số lượng ${line.product.name}`}
                       onClick={() => updateQuantity(line.product.id, -1)}
                     >
-                      <Minus size={15} />
+                      <Minus size={15} aria-hidden="true" />
                     </button>
-                    <span>{line.quantity}</span>
+                    <output aria-live="polite">{line.quantity}</output>
                     <button
                       type="button"
                       aria-label={`Tăng số lượng ${line.product.name}`}
+                      disabled={line.quantity >= line.product.stock}
                       onClick={() => updateQuantity(line.product.id, 1)}
                     >
-                      <Plus size={15} />
+                      <Plus size={15} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -671,7 +1147,7 @@ export default function SpaCommerce() {
               <ShoppingBag size={28} aria-hidden="true" />
               <h3>Giỏ hàng đang trống.</h3>
               <p>Thêm một sản phẩm để xem luồng đặt hàng demo.</p>
-              <button type="button" onClick={() => setCartOpen(false)}>
+              <button type="button" onClick={closeCart}>
                 Tiếp tục chọn
               </button>
             </div>
@@ -684,6 +1160,7 @@ export default function SpaCommerce() {
               <label>
                 <span>Mã giảm giá</span>
                 <input
+                  aria-describedby={couponValid ? "coupon-success" : undefined}
                   value={coupon}
                   onChange={(event) => {
                     setCoupon(event.target.value);
@@ -693,9 +1170,21 @@ export default function SpaCommerce() {
                 />
               </label>
               <button type="button" onClick={applyCoupon}>
-                Áp dụng
+                {couponValid ? (
+                  <>
+                    <Check size={15} aria-hidden="true" />
+                    Đã áp dụng
+                  </>
+                ) : (
+                  "Áp dụng"
+                )}
               </button>
             </div>
+            {couponValid && (
+              <p className="coupon-success" id="coupon-success" role="status">
+                TINH10 đang giảm 10% cho đơn này.
+              </p>
+            )}
             <dl>
               <div>
                 <dt>Tạm tính</dt>
@@ -725,21 +1214,44 @@ export default function SpaCommerce() {
           </div>
         )}
       </aside>
-      {cartOpen && (
-        <button
-          className="drawer-scrim"
-          type="button"
-          aria-label="Đóng giỏ hàng"
-          onClick={() => setCartOpen(false)}
-        />
-      )}
+      <button
+        className={`drawer-scrim ${cartOpen ? "is-open" : ""}`}
+        type="button"
+        aria-label="Đóng giỏ hàng"
+        aria-hidden={!cartOpen}
+        inert={!cartOpen}
+        onClick={closeCart}
+      />
 
-      <dialog className="booking-dialog" ref={bookingDialog}>
-        <form method="dialog" onSubmit={submitBooking}>
+      <dialog
+        className="booking-dialog"
+        ref={bookingDialog}
+        aria-labelledby="booking-title"
+        aria-describedby="booking-description"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        }}
+        onClose={() => {
+          if (bookingTimeout.current !== null) {
+            window.clearTimeout(bookingTimeout.current);
+            bookingTimeout.current = null;
+          }
+          setBookingState("idle");
+          bookingOpener.current?.focus();
+        }}
+      >
+        <form
+          method="dialog"
+          onSubmit={submitBooking}
+          aria-busy={bookingState === "submitting"}
+        >
           <header>
             <div>
               <span>Đặt lịch</span>
-              <h2>Chọn một khoảng dành cho làn da.</h2>
+              <h2 id="booking-title">Chọn một khoảng dành cho làn da.</h2>
+              <p id="booking-description">
+                Gửi yêu cầu trước; lễ tân sẽ gọi lại để chốt giờ chính xác.
+              </p>
             </div>
             <button
               className="icon-button"
@@ -747,13 +1259,37 @@ export default function SpaCommerce() {
               aria-label="Đóng biểu mẫu"
               onClick={() => bookingDialog.current?.close()}
             >
-              <X size={21} />
+              <X size={21} aria-hidden="true" />
             </button>
           </header>
-          <div className="booking-form-grid">
+          {bookingState === "confirmed" ? (
+            <div className="booking-confirmation" role="status">
+              <span>
+                <Check size={24} aria-hidden="true" />
+              </span>
+              <p>Yêu cầu đã được ghi nhận</p>
+              <h3 ref={bookingConfirmation} tabIndex={-1}>
+                TĨNH sẽ gọi để xác nhận khung giờ.
+              </h3>
+              <small>
+                Bạn chưa cần thanh toán. Mọi thay đổi về dịch vụ có thể trao đổi
+                khi lễ tân liên hệ.
+              </small>
+              <button
+                className="primary-action"
+                type="button"
+                onClick={() => bookingDialog.current?.close()}
+              >
+                Hoàn tất
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="booking-form-grid">
             <label>
               <span>Liệu trình</span>
-              <select name="service" required defaultValue="">
+              <select ref={bookingService} name="service" required defaultValue="">
                 <option value="" disabled>
                   Chọn liệu trình
                 </option>
@@ -815,26 +1351,39 @@ export default function SpaCommerce() {
               />
               <small className="field-help">Không cần ghi thông tin bệnh án nhạy cảm tại đây.</small>
             </label>
-          </div>
-          <footer>
-            <p>
-              <Clock3 size={17} aria-hidden="true" />
-              Yêu cầu lịch chưa phải xác nhận cuối cùng.
-            </p>
-            <button className="primary-action" type="submit">
-              Gửi yêu cầu lịch
-              <ArrowRight size={18} aria-hidden="true" />
-            </button>
-          </footer>
+              </div>
+              <footer>
+                <p>
+                  <Clock3 size={17} aria-hidden="true" />
+                  Yêu cầu lịch chưa phải xác nhận cuối cùng.
+                </p>
+                <button
+                  className="primary-action"
+                  type="submit"
+                  disabled={bookingState === "submitting"}
+                >
+                  {bookingState === "submitting" ? "Đang gửi…" : "Gửi yêu cầu lịch"}
+                  <ArrowRight size={18} aria-hidden="true" />
+                </button>
+              </footer>
+            </>
+          )}
         </form>
       </dialog>
 
-      <div className={`chat-panel ${chatOpen ? "is-open" : ""}`}>
+      <div
+        className={`chat-panel ${chatOpen ? "is-open" : ""}`}
+        id="advisor-chat"
+        role="dialog"
+        aria-labelledby="advisor-chat-title"
+        aria-hidden={!chatOpen}
+        inert={!chatOpen}
+      >
         <header>
           <div>
-            <span className="advisor-dot" />
+            <span className="advisor-dot" aria-hidden="true" />
             <div>
-              <strong>Tư vấn TĨNH</strong>
+              <strong id="advisor-chat-title">Tư vấn TĨNH</strong>
               <small>Đang trực tuyến · phản hồi demo</small>
             </div>
           </div>
@@ -842,36 +1391,61 @@ export default function SpaCommerce() {
             className="icon-button"
             type="button"
             aria-label="Đóng chat"
-            onClick={() => setChatOpen(false)}
+            onClick={closeChat}
           >
-            <X size={20} />
+            <X size={20} aria-hidden="true" />
           </button>
         </header>
-        <div className="chat-messages" aria-live="polite">
+        <div
+          className="chat-messages"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+        >
           {messages.map((message, index) => (
             <p className={message.from} key={`${message.from}-${index}`}>
               {message.text}
             </p>
           ))}
+          {chatTyping && (
+            <p className="advisor typing-message">
+              <span />
+              <span />
+              <span />
+              <span className="sr-only">Chuyên viên đang nhập</span>
+            </p>
+          )}
+          <span ref={messagesEnd} aria-hidden="true" />
         </div>
-        <form onSubmit={sendMessage}>
+        <form onSubmit={sendMessage} aria-busy={chatTyping}>
           <label>
             <span className="sr-only">Nhập câu hỏi</span>
-            <input name="message" placeholder="Hỏi về da hoặc lịch hẹn" />
+            <input
+              ref={chatInput}
+              name="message"
+              autoComplete="off"
+              placeholder="Hỏi về da hoặc lịch hẹn"
+            />
           </label>
-          <button type="submit" aria-label="Gửi tin nhắn">
-            <ArrowRight size={18} />
+          <button type="submit" aria-label="Gửi tin nhắn" disabled={chatTyping}>
+            <ArrowRight size={18} aria-hidden="true" />
           </button>
         </form>
       </div>
       <button
         className="chat-trigger"
         type="button"
+        ref={chatTrigger}
         aria-label={chatOpen ? "Đóng tư vấn chat" : "Mở tư vấn chat"}
         aria-expanded={chatOpen}
-        onClick={() => setChatOpen((open) => !open)}
+        aria-controls="advisor-chat"
+        onClick={toggleChat}
       >
-        {chatOpen ? <X size={21} /> : <MessageCircle size={21} />}
+        {chatOpen ? (
+          <X size={21} aria-hidden="true" />
+        ) : (
+          <MessageCircle size={21} aria-hidden="true" />
+        )}
         <span>{chatOpen ? "Đóng" : "Tư vấn"}</span>
       </button>
 
@@ -883,9 +1457,17 @@ export default function SpaCommerce() {
       </aside>
 
       {toast && (
-        <div className="toast" role="status">
-          <Check size={18} aria-hidden="true" />
-          {toast}
+        <div
+          className={`toast toast-${toast.tone}`}
+          role={toast.tone === "alert" ? "alert" : "status"}
+          key={toast.id}
+        >
+          {toast.tone === "alert" ? (
+            <X size={18} aria-hidden="true" />
+          ) : (
+            <Check size={18} aria-hidden="true" />
+          )}
+          {toast.message}
         </div>
       )}
     </div>
