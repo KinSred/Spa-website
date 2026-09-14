@@ -13,6 +13,8 @@ export function Footer({ mobileOpen, onOpenBooking }: FooterProps) {
     <footer
       className={`footer-architectural ${mobileOpen ? "is-dimmed" : ""}`}
       aria-label="Thông tin liên hệ và điều hướng"
+      aria-hidden={mobileOpen ? true : undefined}
+      inert={mobileOpen ? true : undefined}
     >
       {/* Top Statement & Invitation Banner */}
       <div className="footer-manifesto-row">
@@ -36,25 +38,25 @@ export function Footer({ mobileOpen, onOpenBooking }: FooterProps) {
 
       {/* Structured Directory Grid */}
       <div className="footer-directory-grid">
-        {/* Atelier Coordinates Column */}
+        {/* Atelier Context Column */}
         <div className="directory-column col-atelier">
-          <span className="directory-heading">ĐỊA CHỈ & GIỜ TIẾP ĐÓN</span>
+          <span className="directory-heading">KHÔNG GIAN TIẾP ĐÓN</span>
           <div className="atelier-contact-block">
             <div className="contact-item">
               <MapPin size={16} aria-hidden="true" />
-              <span>Số 18 Đường Mạc Thị Bưởi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</span>
+              <span>Không gian phòng cabine TĨNH · TP. Hồ Chí Minh</span>
             </div>
             <div className="contact-item">
               <Clock size={16} aria-hidden="true" />
-              <span>Thứ Hai – Chủ Nhật: 09:00 – 20:00 (Nhận khách cuối lúc 18:30)</span>
+              <span>Thứ Hai – Chủ Nhật: 09:00 – 20:00 (Theo lịch hẹn trước)</span>
             </div>
             <div className="contact-item">
               <Phone size={16} aria-hidden="true" />
-              <a href="tel:0901234567">090 123 4567 (Lễ tân tư vấn)</a>
+              <span>Hỗ trợ tư vấn trực tuyến và tiếp đón tại atelier</span>
             </div>
             <div className="contact-item">
               <Mail size={16} aria-hidden="true" />
-              <a href="mailto:contact@tinh.vn">contact@tinh.vn</a>
+              <span>Đặt hẹn và tư vấn cá nhân qua hệ thống trực tuyến</span>
             </div>
           </div>
         </div>
@@ -87,10 +89,10 @@ export function Footer({ mobileOpen, onOpenBooking }: FooterProps) {
         <div className="directory-column">
           <span className="directory-heading">HỒ SƠ & THÔNG TIN</span>
           <ul className="directory-list">
-            <li><a href="#journal">Tạp chí lâm sàng</a></li>
+            <li><a href="#journal">Góc nhìn chuyên đề</a></li>
             <li><Link href="/admin">Khu vực quản trị ca trực</Link></li>
             <li><span>Cam kết không hương liệu nhân tạo</span></li>
-            <li><span>Chính sách bảo mật hồ sơ khách</span></li>
+            <li><span>Triết lý bảo vệ hàng rào da</span></li>
           </ul>
         </div>
       </div>
@@ -106,7 +108,7 @@ export function Footer({ mobileOpen, onOpenBooking }: FooterProps) {
           © {new Date().getFullYear()} TĨNH Skin Atelier. Nghi thức chăm sóc da tối giản & phục hồi hàng rào sinh học.
         </p>
         <span className="legal-notice">
-          Mỹ phẩm lưu hành nội địa Việt Nam · Hồ sơ khách hàng được bảo mật tuyệt đối.
+          Chăm sóc da khoa học và phục hồi màng ẩm tự nhiên.
         </span>
       </div>
     </footer>

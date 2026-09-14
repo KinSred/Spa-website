@@ -149,7 +149,7 @@ export function AdminSidebar({
 
         <div className="admin-sidebar-foot">
           <p>Không gian vận hành</p>
-          <span>Đơn hàng và lịch hẹn được đồng bộ từ storefront</span>
+          <span>Dữ liệu ghi nhận từ storefront trên thiết bị này</span>
           <Link href="/">
             <ArrowLeft size={16} aria-hidden="true" />
             Về cửa hàng

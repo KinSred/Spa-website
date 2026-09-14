@@ -83,7 +83,6 @@ export default function SpaCommerce() {
   const chatInput = useRef<HTMLInputElement>(null);
   const messagesEnd = useRef<HTMLSpanElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
-  const skinSelect = useRef<HTMLSelectElement>(null);
   const concernSelect = useRef<HTMLSelectElement>(null);
   const priceSelect = useRef<HTMLSelectElement>(null);
 
@@ -569,7 +568,6 @@ export default function SpaCommerce() {
           searchInputRef={searchInput}
           skin={skin}
           onSkinChange={setSkin}
-          skinSelectRef={skinSelect}
           skinOptions={skinOptions}
           concern={concern}
           onConcernChange={setConcern}

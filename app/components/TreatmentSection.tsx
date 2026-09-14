@@ -45,8 +45,8 @@ export function TreatmentSection({
               <div className="step-content">
                 <strong>Soi da & phân tích routine hiện tại</strong>
                 <p>
-                  Đo độ ẩm tầng biểu bì, kiểm tra tình trạng bít tắc và thảo luận
-                  về các kích ứng gần đây.
+                  Quan sát bề mặt da, làm sạch dịu nhẹ và thảo luận về các thói
+                  quen chăm sóc hằng ngày.
                 </p>
               </div>
             </div>
@@ -54,10 +54,10 @@ export function TreatmentSection({
             <div className="protocol-step-item">
               <span className="step-num">02</span>
               <div className="step-content">
-                <strong>Liệu pháp cá nhân hóa theo ngày</strong>
+                <strong>Chăm sóc phù hợp theo tình trạng da</strong>
                 <p>
-                  Tùy chỉnh nồng độ làm dịu, mặt nạ lipid và sóng ấm theo phản ứng
-                  thực tế của da ngay lúc đó.
+                  Thực hiện đắp mặt nạ lipid thực vật, làm mát dịu hoặc giải phóng
+                  bít tắc nhẹ nhàng theo tình trạng da tại thời điểm hẹn.
                 </p>
               </div>
             </div>
@@ -65,10 +65,10 @@ export function TreatmentSection({
             <div className="protocol-step-item">
               <span className="step-num">03</span>
               <div className="step-content">
-                <strong>Cập nhật hồ sơ & kế hoạch tại nhà</strong>
+                <strong>Định hướng kế hoạch tại nhà</strong>
                 <p>
-                  Chuyên viên ghi nhận tiến triển vào hồ sơ của bạn để hướng dẫn
-                  chu trình dưỡng tại nhà tiếp nối.
+                  Chuyên viên chia sẻ các bước chăm sóc tiếp nối tại nhà để hỗ
+                  trợ làn da duy trì trạng thái cân bằng.
                 </p>
               </div>
             </div>
@@ -99,7 +99,7 @@ export function TreatmentSection({
               sizes="(min-width: 1024px) 45vw, 100vw"
             />
             <figcaption className="cabine-visual-tag">
-              <span>CABINE 02 · TĨNH ATELIER SÀI GÒN</span>
+              <span>CABINE 02 · TĨNH ATELIER</span>
             </figcaption>
           </figure>
 

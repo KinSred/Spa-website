@@ -13,11 +13,10 @@ export function Hero({ onOpenBooking }: HeroProps) {
       {/* Atelier Top Context Rail */}
       <div className="hero-top-rail">
         <div className="atelier-stamp">
-          <span className="live-dot" aria-hidden="true" />
-          <span>TĨNH ATELIER · QUẬN 1, SÀI GÒN · MỞ CỬA 09:00 – 20:00</span>
+          <span>TĨNH SKIN ATELIER · TP. HỒ CHÍ MINH</span>
         </div>
-        <span className="atelier-coordinates" aria-hidden="true">
-          10.7769° N, 106.7009° E
+        <span className="atelier-hours" aria-label="Giờ tiếp đón">
+          Giờ tiếp đón tư vấn: 09:00 – 20:00
         </span>
       </div>
 
@@ -27,7 +26,7 @@ export function Hero({ onOpenBooking }: HeroProps) {
         <div className="hero-masthead">
           <div className="hero-kicker-group">
             <span className="hero-kicker-tag">HỒ SƠ CHĂM SÓC TOÀN DIỆN</span>
-            <span className="hero-kicker-index">VOL. 01 / 2024</span>
+            <span className="hero-kicker-index">ATELIER DOSSIER</span>
           </div>
 
           <h1 className="hero-heading">
@@ -75,7 +74,7 @@ export function Hero({ onOpenBooking }: HeroProps) {
             </button>
           </div>
 
-          {/* Editorial Micro-Commitments */}
+          {/* Editorial Commitments */}
           <div className="hero-commitments" aria-label="Cam kết của TĨNH">
             <div>
               <Sparkles size={16} aria-hidden="true" />
@@ -83,7 +82,7 @@ export function Hero({ onOpenBooking }: HeroProps) {
             </div>
             <div>
               <Calendar size={16} aria-hidden="true" />
-              <span>Hồ sơ da lưu giữ trọn đời</span>
+              <span>Đồng hành chăm sóc cá nhân hóa</span>
             </div>
           </div>
         </div>
@@ -103,7 +102,7 @@ export function Hero({ onOpenBooking }: HeroProps) {
             <figcaption className="hero-visual-caption">
               <span className="caption-tag">CABINE 01</span>
               <strong className="caption-title">Nghi thức Calme · 75 phút</strong>
-              <small>Phục hồi màng ẩm sau can thiệp hoạt chất</small>
+              <small>Làm dịu và củng cố màng ẩm tự nhiên</small>
             </figcaption>
           </figure>
 

@@ -51,11 +51,11 @@ export function ContinuitySection() {
             </div>
           </div>
           <span className="stage-kicker">GIAI ĐOẠN II · PHÒNG CABINE</span>
-          <h3 className="stage-heading">Can thiệp chuyên sâu</h3>
+          <h3 className="stage-heading">Chăm sóc phòng cabine</h3>
           <p className="stage-body">
-            Khi da cần giải tỏa bít tắc sâu hoặc hạ nhiệt sau đợt kích ứng, các
-            nghi thức làm mát, mặt nạ lipid và sóng ấm tại atelier đưa dưỡng chất
-            vào sâu mà không gây tổn thương mô.
+            Khi da cần giải tỏa bít tắc hoặc hạ nhiệt sau đợt kích ứng, các
+            nghi thức làm mát, mặt nạ lipid thực vật và thao tác làm dịu nhẹ nhàng
+            tại atelier hỗ trợ củng cố màng ẩm tự nhiên.
           </p>
           <span className="stage-badge">Tại atelier cabine</span>
         </article>
@@ -72,14 +72,13 @@ export function ContinuitySection() {
               <ShieldCheck size={20} />
             </div>
           </div>
-          <span className="stage-kicker">GIAI ĐOẠN III · THEO DÕI</span>
-          <h3 className="stage-heading">Lưu giữ hồ sơ 1:1</h3>
+          <span className="stage-kicker">GIAI ĐOẠN III · ĐỒNG HÀNH</span>
+          <h3 className="stage-heading">Tư vấn tiếp nối</h3>
           <p className="stage-body">
-            Ghi chú về phản ứng da sau buổi hẹn được đồng bộ trực tiếp với danh
-            sách sản phẩm bạn đang dùng. Lần mua sắm tiếp theo luôn có sự hướng
-            dẫn dựa trên tiến triển thực tế.
+            Chuyên viên ghi nhận cảm nhận của bạn sau buổi trị liệu để định hướng
+            chu trình dưỡng tại nhà phù hợp, hỗ trợ làn da duy trì sự ổn định lâu dài.
           </p>
-          <span className="stage-badge">Đồng bộ liên tục</span>
+          <span className="stage-badge">Đồng hành tiếp nối</span>
         </article>
       </div>
     </section>

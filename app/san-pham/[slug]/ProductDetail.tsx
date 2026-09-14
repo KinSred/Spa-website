@@ -116,25 +116,25 @@ export default function ProductDetail({ product }: { product: Product }) {
                 </figcaption>
               ) : (
                 <span className="studio-stock-ready">
-                  Sẵn sàng vận hành tại atelier
+                  Đang có sẵn tại atelier
                 </span>
               )}
             </div>
           </figure>
 
-          {/* Botanical Quality Commits */}
-          <div className="studio-formula-highlights" aria-label="Tiêu chuẩn điều chế">
+          {/* Canonical Formulation Highlights */}
+          <div className="studio-formula-highlights" aria-label="Đặc tính công thức">
             <div className="highlight-item">
               <Sparkles size={16} aria-hidden="true" />
-              <span>Chiết xuất thực vật tinh khiết</span>
+              <span>Phù hợp: {product.skin.slice(0, 2).join(" · ")}</span>
             </div>
             <div className="highlight-item">
               <ShieldCheck size={16} aria-hidden="true" />
-              <span>Phù hợp màng lipid nhạy cảm</span>
+              <span>Mục tiêu: {product.concern[0]}</span>
             </div>
             <div className="highlight-item">
               <Clock size={16} aria-hidden="true" />
-              <span>Điều chế mẻ nhỏ bảo toàn hoạt tính</span>
+              <span>Quy cách: {product.note}</span>
             </div>
           </div>
         </div>

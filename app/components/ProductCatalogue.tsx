@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject } from "react";
+import { RefObject, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Plus, RotateCcw, Search, Sparkles, X } from "lucide-react";
@@ -14,7 +14,6 @@ type ProductCatalogueProps = {
   searchInputRef: RefObject<HTMLInputElement | null>;
   skin: string;
   onSkinChange: (skin: string) => void;
-  skinSelectRef: RefObject<HTMLSelectElement | null>;
   skinOptions: string[];
   concern: string;
   onConcernChange: (concern: string) => void;
@@ -37,7 +36,6 @@ export function ProductCatalogue({
   searchInputRef,
   skin,
   onSkinChange,
-  skinSelectRef,
   skinOptions,
   concern,
   onConcernChange,
@@ -52,6 +50,8 @@ export function ProductCatalogue({
   addedProductId,
   onAddToCart,
 }: ProductCatalogueProps) {
+  const defaultSkinChipRef = useRef<HTMLButtonElement | null>(null);
+
   const returnFilterFocus = (control: { focus: () => void } | null) => {
     window.requestAnimationFrame(() => control?.focus());
   };
@@ -90,16 +90,16 @@ export function ProductCatalogue({
       {/* Modern Curated Filter Bar */}
       <div className="catalogue-filter-bar">
         {/* Skin Type Category Quick Chips */}
-        <div className="filter-chips-rail" role="tablist" aria-label="Lọc theo loại da">
+        <div className="filter-chips-rail" role="group" aria-label="Lọc theo loại da">
           {skinOptions.map((opt) => {
             const active = skin === opt;
             return (
               <button
                 key={opt}
-                role="tab"
-                aria-selected={active}
-                className={`filter-chip ${active ? "is-active" : ""}`}
                 type="button"
+                aria-pressed={active}
+                ref={opt === "Tất cả" ? defaultSkinChipRef : undefined}
+                className={`filter-chip ${active ? "is-active" : ""}`}
                 onClick={() => onSkinChange(opt)}
               >
                 {opt}
@@ -187,7 +187,7 @@ export function ProductCatalogue({
               className="active-tag"
               onClick={() => {
                 onSkinChange("Tất cả");
-                returnFilterFocus(skinSelectRef.current);
+                returnFilterFocus(defaultSkinChipRef.current);
               }}
             >
               <span>{skin}</span>
@@ -338,7 +338,7 @@ export function ProductCatalogue({
                 “Làn da không cần mười bước phức tạp. Một hàng rào da khỏe bắt đầu
                 từ việc dừng lại đúng lúc.”
               </blockquote>
-              <cite>Atelier TĨNH · Ghi chú lâm sàng</cite>
+              <cite>Atelier TĨNH · Ghi chú chuyên đề</cite>
             </aside>
           )}
         </div>
