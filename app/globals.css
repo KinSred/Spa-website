@@ -1251,7 +1251,7 @@ a:active {
 .chat-trigger {
   position: fixed;
   right: var(--space-md);
-  bottom: calc(var(--control-h) + var(--space-xl));
+  bottom: calc(var(--control-h) + var(--space-2xl));
   z-index: var(--z-sticky);
   min-height: var(--control-h);
   padding: 0 var(--space-md);

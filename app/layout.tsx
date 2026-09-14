@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ? "http"
       : "https");
   const origin = `${protocol}://${host}`;
-  const title = "TĨNH — Spa Commerce";
+  const title = "TĨNH - Spa Commerce";
   const description =
     "Mua mỹ phẩm, chọn thiết bị và đặt lịch tư vấn hoặc liệu trình trong cùng một hồ sơ chăm sóc da.";
 
@@ -50,7 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: `${origin}/og.png`,
           width: 1200,
           height: 630,
-          alt: "TĨNH — Mỹ phẩm và liệu trình trong một hồ sơ da",
+          alt: "TĨNH - Mỹ phẩm và liệu trình trong một hồ sơ da",
         },
       ],
     },

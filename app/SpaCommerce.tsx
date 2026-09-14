@@ -1,50 +1,32 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import {
-  ArrowRight,
-  BadgeCheck,
-  Banknote,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  CircleUserRound,
-  Clock3,
-  CreditCard,
-  Menu,
-  MessageCircle,
-  Minus,
-  Package,
-  Plus,
-  Search,
-  ShoppingBag,
-  SlidersHorizontal,
-  Sparkles,
-  X,
-} from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { articles, formatMoney, products, services, type Product } from "./data";
+import { products, services, type Product } from "./data";
 import {
   commerceStorageKeys,
   createCommerceId,
   prependCommerceAppointment,
   prependCommerceOrder,
 } from "./commerce-storage";
+import { Header } from "./components/Header";
+import { Hero } from "./components/Hero";
+import { ContinuitySection } from "./components/ContinuitySection";
+import { ProductCatalogue } from "./components/ProductCatalogue";
+import { TreatmentSection } from "./components/TreatmentSection";
+import { JournalSection } from "./components/JournalSection";
+import { Footer } from "./components/Footer";
+import { CartDrawer, type CheckoutState } from "./components/CartDrawer";
+import { BookingDialog } from "./components/BookingDialog";
+import { AdvisorChat } from "./components/AdvisorChat";
+import { MobileBookingBar } from "./components/MobileBookingBar";
+import { Toast, type ToastMessage } from "./components/Toast";
 
 type CartLine = {
   product: Product;
   quantity: number;
 };
 
-type ToastMessage = {
-  id: number;
-  message: string;
-  tone: "status" | "alert";
-};
-
 type BookingState = "idle" | "submitting" | "confirmed";
-type CheckoutState = "cart" | "details" | "processing" | "confirmed";
 
 const skinOptions = ["Tất cả", "Mọi loại da", "Da khô", "Da dầu", "Da nhạy cảm"];
 const concernOptions = [
@@ -87,6 +69,7 @@ export default function SpaCommerce() {
       text: "Chào bạn, mình có thể giúp chọn routine hoặc khung giờ liệu trình.",
     },
   ]);
+
   const bookingDialog = useRef<HTMLDialogElement>(null);
   const bookingService = useRef<HTMLSelectElement>(null);
   const bookingOpener = useRef<HTMLElement | null>(null);
@@ -95,7 +78,6 @@ export default function SpaCommerce() {
   const wordmark = useRef<HTMLAnchorElement>(null);
   const cartClose = useRef<HTMLButtonElement>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
-  const mobileMenu = useRef<HTMLElement>(null);
   const megaTrigger = useRef<HTMLButtonElement>(null);
   const chatTrigger = useRef<HTMLButtonElement>(null);
   const chatInput = useRef<HTMLInputElement>(null);
@@ -104,6 +86,7 @@ export default function SpaCommerce() {
   const skinSelect = useRef<HTMLSelectElement>(null);
   const concernSelect = useRef<HTMLSelectElement>(null);
   const priceSelect = useRef<HTMLSelectElement>(null);
+
   const addedTimeout = useRef<number | null>(null);
   const bagTimeout = useRef<number | null>(null);
   const copyTimeout = useRef<number | null>(null);
@@ -151,6 +134,7 @@ export default function SpaCommerce() {
         window.localStorage.removeItem("tinh-cart");
       }
     }
+
     const frame = window.requestAnimationFrame(() => {
       setCatalogProducts(availableProducts);
       setCart(initialCart);
@@ -163,7 +147,9 @@ export default function SpaCommerce() {
     if (!cartHydrated) return;
     window.localStorage.setItem(
       "tinh-cart",
-      JSON.stringify(cart.map((line) => ({ id: line.product.id, quantity: line.quantity }))),
+      JSON.stringify(
+        cart.map((line) => ({ id: line.product.id, quantity: line.quantity })),
+      ),
     );
   }, [cart, cartHydrated]);
 
@@ -324,7 +310,7 @@ export default function SpaCommerce() {
     setMobileOpen(next);
     if (next) {
       window.requestAnimationFrame(() =>
-        mobileMenu.current?.querySelector<HTMLElement>("a, button")?.focus(),
+        document.querySelector<HTMLElement>(".mobile-menu a, .mobile-menu button")?.focus(),
       );
     }
   };
@@ -347,50 +333,12 @@ export default function SpaCommerce() {
     chatTrigger.current?.focus();
   };
 
-  const trapCartFocus = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (!cartOpen || event.key !== "Tab") return;
-    const focusable = Array.from(
-      event.currentTarget.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    const first = focusable[0];
-    const last = focusable.at(-1);
-    if (!first || !last) return;
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
-  const trapMobileMenuFocus = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (!mobileOpen || event.key !== "Tab") return;
-    const focusable = Array.from(
-      event.currentTarget.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    const first = focusable[0];
-    const last = focusable.at(-1);
-    if (!first || !last) return;
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
   const addToCart = (product: Product) => {
     setCart((current) => {
       const line = current.find((item) => item.product.id === product.id);
       if (line) {
         return current.map((item) =>
-            item.product.id === product.id
+          item.product.id === product.id
             ? {
                 ...item,
                 quantity: Math.min(item.product.stock, item.quantity + 1),
@@ -550,11 +498,6 @@ export default function SpaCommerce() {
     }
   };
 
-  const closeMegaAfterFilter = () => {
-    setMegaOpen(false);
-    window.requestAnimationFrame(() => megaTrigger.current?.focus());
-  };
-
   const dismissAnnouncement = () => {
     setAnnouncementVisible(false);
     window.requestAnimationFrame(() => wordmark.current?.focus());
@@ -567,881 +510,111 @@ export default function SpaCommerce() {
     setPrice("all");
   };
 
-  const returnFilterFocus = (control: { focus: () => void } | null) => {
-    window.requestAnimationFrame(() => control?.focus());
-  };
-
   return (
     <div
       className={`site-shell ${announcementVisible ? "" : "announcement-dismissed"}`}
     >
-      <span className="nav-sentinel" ref={navSentinel} aria-hidden="true" />
-      <header
-        className={`site-header ${navCompact ? "is-compact" : ""} ${announcementVisible ? "" : "is-banner-dismissed"}`}
-      >
-        <div
-          className={`announcement ${announcementVisible ? "" : "is-dismissed"}`}
-          aria-hidden={!announcementVisible}
-          inert={!announcementVisible}
-        >
-          <span>Miễn phí giao hàng từ 1.200.000 ₫</span>
-          <div>
-            <button type="button" onClick={copyCoupon}>
-              {couponCopied ? (
-                <>
-                  <Check size={14} aria-hidden="true" />
-                  Đã sao chép
-                </>
-              ) : (
-                "TINH10 · Sao chép mã"
-              )}
-            </button>
-            <button
-              className="announcement-close"
-              type="button"
-              aria-label="Ẩn thông báo ưu đãi"
-              onClick={dismissAnnouncement}
-            >
-              <X size={15} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
-        <div className="site-nav">
-        <div className="nav-inner">
-          <Link
-            className="wordmark"
-            href="/"
-            ref={wordmark}
-            aria-label="TĨNH — Trang chủ"
-          >
-            TĨNH
-            <span>skin atelier</span>
-          </Link>
-
-          <nav className="desktop-nav" aria-label="Điều hướng chính">
-            <button
-              className="nav-link"
-              type="button"
-              ref={megaTrigger}
-              aria-expanded={megaOpen}
-              aria-controls="product-mega-menu"
-              onClick={() => {
-                const next = !megaOpen;
-                closeCommerceSurfaces();
-                setMegaOpen(next);
-              }}
-            >
-              Khám phá
-              <ChevronDown
-                className={`nav-chevron ${megaOpen ? "is-open" : ""}`}
-                size={16}
-                aria-hidden="true"
-              />
-            </button>
-            <a className="nav-link" href="#catalogue">
-              Sản phẩm
-            </a>
-            <a className="nav-link" href="#treatments">
-              Liệu trình
-            </a>
-            <a className="nav-link" href="#journal">
-              Kiến thức
-            </a>
-          </nav>
-
-          <div className="nav-actions">
-            <Link className="admin-link" href="/admin">
-              Quản trị
-            </Link>
-            <button className="book-link desktop-book" type="button" onClick={openBooking}>
-              Đặt lịch
-            </button>
-            <button
-              className={`icon-button bag-button ${bagPulse ? "is-pulsing" : ""}`}
-              type="button"
-              ref={cartTrigger}
-              aria-label={`Mở giỏ hàng, ${cartCount} sản phẩm`}
-              aria-expanded={cartOpen}
-              aria-controls="shopping-cart"
-              onClick={openCart}
-            >
-              <ShoppingBag size={20} aria-hidden="true" />
-              <span>{cartCount}</span>
-            </button>
-            <button
-              className="icon-button mobile-menu-button"
-              type="button"
-              ref={menuTrigger}
-              aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
-              aria-expanded={mobileOpen}
-              aria-controls="mobile-navigation"
-              onClick={toggleMobileMenu}
-            >
-              {mobileOpen ? (
-                <X size={22} aria-hidden="true" />
-              ) : (
-                <Menu size={22} aria-hidden="true" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div
-          className={`mega-panel ${megaOpen ? "is-open" : ""}`}
-          id="product-mega-menu"
-          aria-hidden={!megaOpen}
-          inert={!megaOpen}
-        >
-          <div className="mega-inner">
-            <div>
-              <p className="mega-title">Chọn theo làn da</p>
-              <a
-                href="#catalogue"
-                onClick={() => {
-                  setSkin("Da nhạy cảm");
-                  closeMegaAfterFilter();
-                }}
-              >
-                <span>Da nhạy cảm</span>
-                <small>Phục hồi và giảm quá tải routine</small>
-              </a>
-              <a
-                href="#catalogue"
-                onClick={() => {
-                  setSkin("Da dầu");
-                  closeMegaAfterFilter();
-                }}
-              >
-                <span>Da dầu</span>
-                <small>Làm sạch nhẹ, bảo vệ ráo mặt</small>
-              </a>
-            </div>
-            <div>
-              <p className="mega-title">Chọn theo nhu cầu</p>
-              <a
-                href="#catalogue"
-                onClick={() => {
-                  setConcern("Cấp ẩm");
-                  closeMegaAfterFilter();
-                }}
-              >
-                <span>Cấp ẩm</span>
-                <small>Cân bằng lại cảm giác khô căng</small>
-              </a>
-              <a
-                href="#catalogue"
-                onClick={() => {
-                  setConcern("Săn chắc");
-                  closeMegaAfterFilter();
-                }}
-              >
-                <span>Săn chắc</span>
-                <small>Thiết bị và thao tác tại nhà</small>
-              </a>
-            </div>
-            <button className="mega-feature" type="button" onClick={openBooking}>
-              <span>Tư vấn riêng</span>
-              <strong>Chưa biết bắt đầu ở đâu?</strong>
-              <small>Soi da 45 phút và nhận routine theo ngân sách.</small>
-              <ArrowRight size={18} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
-          <nav
-            className={`mobile-menu ${mobileOpen ? "is-open" : ""}`}
-            id="mobile-navigation"
-            ref={mobileMenu}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Điều hướng di động"
-            aria-hidden={!mobileOpen}
-            inert={!mobileOpen}
-            onKeyDown={trapMobileMenuFocus}
-          >
-            <a href="#catalogue" onClick={closeMobileMenu}>
-              Sản phẩm
-            </a>
-            <a href="#treatments" onClick={closeMobileMenu}>
-              Liệu trình
-            </a>
-            <a href="#journal" onClick={closeMobileMenu}>
-              Kiến thức
-            </a>
-            <Link href="/admin">Quản trị</Link>
-            <button type="button" onClick={openBooking}>
-              Đặt lịch tư vấn
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      <button
-        className={`nav-scrim ${megaOpen || mobileOpen ? "is-open" : ""}`}
-        type="button"
-        aria-label="Đóng menu"
-        aria-hidden={!megaOpen && !mobileOpen}
-        inert={!megaOpen && !mobileOpen}
-        onClick={() => {
-          if (mobileOpen) closeMobileMenu();
-          else {
-            setMegaOpen(false);
-            megaTrigger.current?.focus();
-          }
+      <Header
+        announcementVisible={announcementVisible}
+        onDismissAnnouncement={dismissAnnouncement}
+        couponCopied={couponCopied}
+        onCopyCoupon={copyCoupon}
+        navCompact={navCompact}
+        navSentinelRef={navSentinel}
+        wordmarkRef={wordmark}
+        megaOpen={megaOpen}
+        onToggleMega={() => {
+          const next = !megaOpen;
+          closeCommerceSurfaces();
+          setMegaOpen(next);
         }}
+        onCloseMega={() => {
+          setMegaOpen(false);
+          window.requestAnimationFrame(() => megaTrigger.current?.focus());
+        }}
+        megaTriggerRef={megaTrigger}
+        onFilterSkin={(selectedSkin) => setSkin(selectedSkin)}
+        onFilterConcern={(selectedConcern) => setConcern(selectedConcern)}
+        onOpenBooking={openBooking}
+        cartCount={cartCount}
+        cartOpen={cartOpen}
+        cartTriggerRef={cartTrigger}
+        onOpenCart={openCart}
+        bagPulse={bagPulse}
+        mobileOpen={mobileOpen}
+        onToggleMobile={toggleMobileMenu}
+        onCloseMobile={closeMobileMenu}
+        menuTriggerRef={menuTrigger}
       />
 
       <main inert={mobileOpen}>
-        <section className="hero hero-marquee">
-          <figure className="hero-media">
-            <Image
-              src="/hero-treatment.webp"
-              alt="Chuyên viên nhỏ serum trong một buổi chăm sóc da tại TĨNH"
-              width={1600}
-              height={833}
-              unoptimized
-              priority
-              sizes="100vw"
-            />
-            <figcaption>
-              Nghi thức phục hồi · 75 phút · Đặt theo lịch hẹn
-            </figcaption>
-          </figure>
-          <div className="hero-copy">
-            <p className="hero-kicker">TĨNH Skin Atelier</p>
-            <h1>Chăm da, không chia đôi.</h1>
-            <p className="hero-service-note">
-              Mỹ phẩm tuyển chọn · Liệu trình theo lịch · Hồ sơ da liền mạch
-            </p>
-          </div>
-        </section>
+        <Hero onOpenBooking={openBooking} />
 
-        <section className="hero-decision" aria-label="Bắt đầu chăm sóc">
-          <div className="hero-decision-copy">
-            <span>Chăm tại nhà × Chăm tại spa</span>
-            <p>
-              Mua đúng sản phẩm cho những ngày ở nhà. Đặt đúng liệu trình cho
-              những lúc làn da cần một bàn tay có chuyên môn.
-            </p>
-          </div>
-          <div className="hero-actions">
-            <a className="primary-action" href="#catalogue">
-              Chọn sản phẩm
-              <ArrowRight size={18} aria-hidden="true" />
-            </a>
-            <button className="text-action" type="button" onClick={openBooking}>
-              Đặt lịch tư vấn
-            </button>
-          </div>
-          <div className="hero-note">
-            <CircleUserRound size={20} aria-hidden="true" />
-            <span>Routine mua tại shop được lưu cùng ghi chú của chuyên viên.</span>
-          </div>
-        </section>
+        <ContinuitySection />
 
-        <section className="continuity">
-          <div className="continuity-intro">
-            <p>Điểm khác biệt của TĨNH</p>
-            <h2>Shop và phòng trị liệu cùng đọc một câu chuyện về làn da.</h2>
-          </div>
-          <div className="continuity-flow" aria-label="Quy trình chăm sóc kết hợp">
-            <article>
-              <Package size={24} aria-hidden="true" />
-              <span>Mang về nhà</span>
-              <h3>Routine vừa đủ</h3>
-              <p>Sản phẩm được lọc theo da, nhu cầu và khoảng giá bạn chọn.</p>
-            </article>
-            <span className="flow-rule" aria-hidden="true" />
-            <article>
-              <Sparkles size={24} aria-hidden="true" />
-              <span>Thực hiện tại spa</span>
-              <h3>Liệu trình có ngữ cảnh</h3>
-              <p>Chuyên viên xem lại routine và ghi chú sau mỗi buổi hẹn.</p>
-            </article>
-          </div>
-        </section>
+        <ProductCatalogue
+          products={filteredProducts}
+          query={query}
+          onQueryChange={setQuery}
+          searchInputRef={searchInput}
+          skin={skin}
+          onSkinChange={setSkin}
+          skinSelectRef={skinSelect}
+          skinOptions={skinOptions}
+          concern={concern}
+          onConcernChange={setConcern}
+          concernSelectRef={concernSelect}
+          concernOptions={concernOptions}
+          price={price}
+          onPriceChange={setPrice}
+          priceSelectRef={priceSelect}
+          hasActiveFilters={hasActiveFilters}
+          onResetFilters={resetFilters}
+          cart={cart}
+          addedProductId={addedProductId}
+          onAddToCart={addToCart}
+        />
 
-        <section className="catalogue-section" id="catalogue">
-          <header className="section-heading">
-            <div>
-              <h2>Chọn theo làn da hôm nay.</h2>
-              <p>
-                Mỹ phẩm và thiết bị được chọn theo tình trạng da, nhu cầu và ngân sách.
-              </p>
-            </div>
-            <span aria-live="polite" aria-atomic="true">
-              {filteredProducts.length} kết quả
-            </span>
-          </header>
+        <TreatmentSection
+          selectedServiceId={selectedServiceId}
+          onSelectService={setSelectedServiceId}
+          onChooseServiceAndBook={chooseServiceAndBook}
+        />
 
-          <div className="catalogue-tools">
-            <label className="search-field">
-              <span className="sr-only">Tìm sản phẩm</span>
-              <Search size={18} aria-hidden="true" />
-              <input
-                ref={searchInput}
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Tên sản phẩm hoặc nhu cầu"
-              />
-            </label>
-            <label>
-              <span className="sr-only">Loại da</span>
-              <select
-                ref={skinSelect}
-                value={skin}
-                onChange={(event) => setSkin(event.target.value)}
-              >
-                {skinOptions.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span className="sr-only">Nhu cầu</span>
-              <select
-                ref={concernSelect}
-                value={concern}
-                onChange={(event) => setConcern(event.target.value)}
-              >
-                {concernOptions.map((option) => (
-                  <option key={option}>{option}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span className="sr-only">Mức giá</span>
-              <select
-                ref={priceSelect}
-                value={price}
-                onChange={(event) => setPrice(event.target.value)}
-              >
-                <option value="all">Mọi mức giá</option>
-                <option value="under700">Dưới 700.000 ₫</option>
-                <option value="700to1000">700.000–1.000.000 ₫</option>
-                <option value="over1000">Trên 1.000.000 ₫</option>
-              </select>
-            </label>
-            <button
-              className="reset-filter"
-              type="button"
-              disabled={!hasActiveFilters}
-              onClick={resetFilters}
-            >
-              <SlidersHorizontal size={17} aria-hidden="true" />
-              Đặt lại
-            </button>
-          </div>
-
-          <div
-            className={`active-filters ${hasActiveFilters ? "has-items" : ""}`}
-            aria-label="Bộ lọc đang dùng"
-          >
-            {query.trim() && (
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery("");
-                  returnFilterFocus(searchInput.current);
-                }}
-              >
-                Tìm: {query.trim()}
-                <X size={14} aria-hidden="true" />
-              </button>
-            )}
-            {skin !== "Tất cả" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSkin("Tất cả");
-                  returnFilterFocus(skinSelect.current);
-                }}
-              >
-                {skin}
-                <X size={14} aria-hidden="true" />
-              </button>
-            )}
-            {concern !== "Tất cả nhu cầu" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setConcern("Tất cả nhu cầu");
-                  returnFilterFocus(concernSelect.current);
-                }}
-              >
-                {concern}
-                <X size={14} aria-hidden="true" />
-              </button>
-            )}
-            {price !== "all" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setPrice("all");
-                  returnFilterFocus(priceSelect.current);
-                }}
-              >
-                {price === "under700"
-                  ? "Dưới 700.000 ₫"
-                  : price === "700to1000"
-                    ? "700.000–1.000.000 ₫"
-                    : "Trên 1.000.000 ₫"}
-                <X size={14} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-
-          {filteredProducts.length ? (
-            <div className="product-grid">
-              {filteredProducts.map((product) => {
-                const quantityInCart =
-                  cart.find((line) => line.product.id === product.id)?.quantity ?? 0;
-                const atStockLimit = quantityInCart >= product.stock;
-                const justAdded = addedProductId === product.id;
-
-                return (
-                  <article className="product-card" key={product.id}>
-                  <Link
-                    className="product-image"
-                    href={`/san-pham/${product.slug}`}
-                    aria-label={`Xem chi tiết ${product.name}`}
-                  >
-                    <Image
-                      src={product.image}
-                      alt={`${product.name}, sản phẩm ${product.category.toLocaleLowerCase("vi")}`}
-                      width={600}
-                      height={800}
-                      unoptimized
-                      loading="lazy"
-                      sizes="(min-width: 960px) 25vw, (min-width: 640px) 50vw, 100vw"
-                    />
-                    {product.stock <= 5 && <span>Sắp hết</span>}
-                  </Link>
-                  <div className="product-meta">
-                    <div>
-                      <p>{product.category}</p>
-                      <h3>
-                        <Link href={`/san-pham/${product.slug}`}>{product.name}</Link>
-                      </h3>
-                      <small>{product.note}</small>
-                    </div>
-                    <strong>{formatMoney(product.price)}</strong>
-                  </div>
-                  <button
-                    className={`add-button ${justAdded ? "is-success" : ""}`}
-                    type="button"
-                    disabled={atStockLimit}
-                    onClick={() => addToCart(product)}
-                  >
-                    {atStockLimit ? "Đã đủ tồn kho" : justAdded ? "Đã thêm" : "Thêm vào giỏ"}
-                    {atStockLimit || justAdded ? (
-                      <Check size={17} aria-hidden="true" />
-                    ) : (
-                      <Plus size={17} aria-hidden="true" />
-                    )}
-                  </button>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="empty-results">
-              <Search size={24} aria-hidden="true" />
-              <h3>Chưa có sản phẩm khớp bộ lọc.</h3>
-              <p>Thử bỏ bớt một tiêu chí hoặc đặt lại toàn bộ bộ lọc.</p>
-              <button
-                type="button"
-                onClick={resetFilters}
-              >
-                Xem tất cả sản phẩm
-              </button>
-            </div>
-          )}
-        </section>
-
-        <section className="treatment-section" id="treatments">
-          <figure>
-            <Image
-              src="/consultation.webp"
-              alt="Chuyên viên TĨNH kiểm tra tình trạng da trong buổi tư vấn"
-              width={1280}
-              height={956}
-              unoptimized
-              loading="lazy"
-              sizes="(min-width: 960px) 48vw, 100vw"
-            />
-          </figure>
-          <div className="treatment-copy">
-            <header>
-              <p>Tư vấn & liệu trình</p>
-              <h2>Đặt một buổi, mang về một kế hoạch.</h2>
-              <span>
-                Mỗi lịch hẹn bắt đầu bằng việc xem lại routine hiện tại — kể cả
-                sản phẩm không mua tại TĨNH.
-              </span>
-            </header>
-            <div className="service-selector" aria-label="Chọn liệu trình">
-              {services.map((service) => {
-                const selected = selectedServiceId === service.id;
-                return (
-                  <button
-                    className={selected ? "is-selected" : ""}
-                    type="button"
-                    aria-pressed={selected}
-                    key={service.id}
-                    onClick={() => setSelectedServiceId(service.id)}
-                  >
-                    <span>
-                      <strong>{service.name}</strong>
-                      <small>{service.duration}</small>
-                    </span>
-                    <span>
-                      {formatMoney(service.price)}
-                      {selected && <Check size={16} aria-hidden="true" />}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="selected-service-note" aria-live="polite">
-              {services.find((service) => service.id === selectedServiceId)?.description}
-            </p>
-            <ol className="booking-steps">
-              <li>
-                <span>01</span>
-                <div>
-                  <h3>Chọn điều bạn cần</h3>
-                  <p>Tư vấn routine, phục hồi hoặc làm sạch chuyên sâu.</p>
-                </div>
-              </li>
-              <li>
-                <span>02</span>
-                <div>
-                  <h3>Chọn khung giờ</h3>
-                  <p>Yêu cầu được lưu ngay để quản trị viên xác nhận.</p>
-                </div>
-              </li>
-              <li>
-                <span>03</span>
-                <div>
-                  <h3>Giữ hồ sơ da</h3>
-                  <p>Ghi chú sau buổi hẹn nối tiếp với lịch mua sản phẩm.</p>
-                </div>
-              </li>
-            </ol>
-            <button
-              className="primary-action"
-              type="button"
-              onClick={() => chooseServiceAndBook(selectedServiceId)}
-            >
-              Chọn lịch phù hợp
-              <CalendarDays size={18} aria-hidden="true" />
-            </button>
-          </div>
-        </section>
-
-        <section className="journal-section" id="journal">
-          <header className="section-heading">
-            <div>
-              <h2>Đọc trước khi thêm một bước.</h2>
-              <p>Kiến thức ngắn, đủ để ra quyết định chăm da bình tĩnh hơn.</p>
-            </div>
-            <a href="#journal-list">
-              Xem thư viện
-              <ArrowRight size={17} aria-hidden="true" />
-            </a>
-          </header>
-          <div className="article-list" id="journal-list">
-            {articles.map((article) => (
-              <article key={article.title}>
-                <span>{article.tag}</span>
-                <h3>{article.title}</h3>
-                <p>{article.excerpt}</p>
-                <a href="#journal-list" aria-label={`Đọc ${article.title}`}>
-                  {article.time}
-                  <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </article>
-            ))}
-          </div>
-        </section>
+        <JournalSection />
       </main>
 
-      <footer className="site-footer" inert={mobileOpen}>
-        <p className="footer-statement">
-          Chăm da tại nhà và tại spa nên là một câu chuyện liền mạch.
-        </p>
-        <div className="footer-meta">
-          <Link className="wordmark footer-wordmark" href="/">
-            TĨNH
-          </Link>
-          <div>
-            <a href="#catalogue">Sản phẩm</a>
-            <button type="button" onClick={openBooking}>
-              Đặt lịch
-            </button>
-            <Link href="/admin">Quản trị</Link>
-          </div>
-          <span>© 2026 TĨNH Skin Atelier</span>
-        </div>
-      </footer>
+      <Footer mobileOpen={mobileOpen} onOpenBooking={openBooking} />
 
-      <aside
-        className={`cart-drawer ${cartOpen ? "is-open" : ""}`}
-        id="shopping-cart"
-        role="dialog"
+      <CartDrawer
+        cartOpen={cartOpen}
+        onCloseCart={closeCart}
+        cartCloseRef={cartClose}
+        cart={cart}
+        onUpdateQuantity={updateQuantity}
+        coupon={coupon}
+        onCouponChange={setCoupon}
+        couponValid={couponValid}
+        onApplyCoupon={applyCoupon}
+        subtotal={subtotal}
+        discount={discount}
+        checkoutState={checkoutState}
+        onSetCheckoutState={setCheckoutState}
+        onSubmitCheckout={submitCheckout}
+        lastOrderId={lastOrderId}
         aria-modal="true"
-        aria-labelledby="cart-title"
-        aria-hidden={!cartOpen}
         inert={!cartOpen}
-        onKeyDown={trapCartFocus}
-      >
-        <header>
-          <div>
-            <span id="cart-title">Giỏ hàng</span>
-            <strong>
-              {checkoutState === "details" || checkoutState === "processing"
-                ? "Thông tin nhận hàng"
-                : checkoutState === "confirmed"
-                  ? "Đơn hàng đã ghi nhận"
-                  : `${cartCount} sản phẩm`}
-            </strong>
-          </div>
-          <button
-            className="icon-button"
-            type="button"
-            ref={cartClose}
-            aria-label="Đóng giỏ hàng"
-            onClick={closeCart}
-          >
-            <X size={21} aria-hidden="true" />
-          </button>
-        </header>
-
-        <div className={`cart-lines cart-state-${checkoutState}`}>
-          {checkoutState === "confirmed" ? (
-            <div className="checkout-confirmation" role="status">
-              <span className="confirmation-mark">
-                <BadgeCheck size={28} aria-hidden="true" />
-              </span>
-              <p>Đơn hàng đã được tạo</p>
-              <h3>{lastOrderId}</h3>
-              <span>
-                TĨNH đã lưu đơn vào khu quản trị. Nhân viên có thể tiếp tục xử lý
-                trạng thái giao hàng ngay trên dashboard.
-              </span>
-              <div>
-                <Link href="/admin?tab=orders">Xem trong quản trị</Link>
-                <button type="button" onClick={closeCart}>
-                  Tiếp tục mua sắm
-                </button>
-              </div>
-            </div>
-          ) : checkoutState === "processing" ? (
-            <div className="checkout-processing" role="status" aria-live="polite">
-              <span aria-hidden="true" />
-              <h3>Đang ghi nhận đơn hàng</h3>
-              <p>Thông tin nhận hàng đang được lưu an toàn trên thiết bị này.</p>
-            </div>
-          ) : checkoutState === "details" ? (
-            <form className="checkout-form" onSubmit={submitCheckout}>
-              <button
-                className="checkout-back"
-                type="button"
-                onClick={() => setCheckoutState("cart")}
-              >
-                <ArrowRight size={16} aria-hidden="true" />
-                Trở lại giỏ hàng
-              </button>
-              <label>
-                <span>Họ và tên</span>
-                <input name="name" autoComplete="name" required placeholder="Nguyễn An" />
-                <small>Tên người nhận ghi trên đơn hàng.</small>
-              </label>
-              <label>
-                <span>Số điện thoại</span>
-                <input
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  inputMode="tel"
-                  pattern="[0-9+\s]{9,14}"
-                  required
-                  placeholder="090 123 4567"
-                />
-                <small>Dùng để xác nhận giao nhận.</small>
-              </label>
-              <label>
-                <span>Địa chỉ giao hàng</span>
-                <textarea
-                  name="address"
-                  autoComplete="street-address"
-                  required
-                  placeholder="Số nhà, tên đường, phường/xã, tỉnh/thành"
-                />
-                <small>Ghi đủ thông tin để đơn vị vận chuyển liên hệ.</small>
-              </label>
-              <fieldset className="payment-options">
-                <legend>Thanh toán</legend>
-                <label>
-                  <input type="radio" name="payment" value="cod" defaultChecked />
-                  <Banknote size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Khi nhận hàng</strong>
-                    <small>Thanh toán trực tiếp cho đơn vị giao nhận.</small>
-                  </span>
-                </label>
-                <label>
-                  <input type="radio" name="payment" value="bank" />
-                  <CreditCard size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Chuyển khoản</strong>
-                    <small>TĨNH gửi thông tin sau khi xác nhận đơn.</small>
-                  </span>
-                </label>
-              </fieldset>
-              <div className="checkout-total">
-                <span>Tổng thanh toán</span>
-                <strong>{formatMoney(subtotal - discount)}</strong>
-              </div>
-              <button className="checkout-button" type="submit">
-                Xác nhận đặt hàng
-                <ArrowRight size={17} aria-hidden="true" />
-              </button>
-              <p className="checkout-security">
-                <BadgeCheck size={16} aria-hidden="true" />
-                Thông tin được lưu để vận hành đơn hàng trong phiên bản bàn giao.
-              </p>
-            </form>
-          ) : cart.length ? (
-            cart.map((line) => (
-              <article className="cart-line" key={line.product.id}>
-                <Image
-                  src={line.product.image}
-                  alt=""
-                  width={90}
-                  height={120}
-                  unoptimized
-                />
-                <div>
-                  <h3>{line.product.name}</h3>
-                  <p>{formatMoney(line.product.price)}</p>
-                  <div
-                    className="quantity-control"
-                    role="group"
-                    aria-label={`Số lượng ${line.product.name}`}
-                  >
-                    <button
-                      type="button"
-                      aria-label={`Giảm số lượng ${line.product.name}`}
-                      onClick={() => updateQuantity(line.product.id, -1)}
-                    >
-                      <Minus size={15} aria-hidden="true" />
-                    </button>
-                    <output aria-live="polite">{line.quantity}</output>
-                    <button
-                      type="button"
-                      aria-label={`Tăng số lượng ${line.product.name}`}
-                      disabled={line.quantity >= line.product.stock}
-                      onClick={() => updateQuantity(line.product.id, 1)}
-                    >
-                      <Plus size={15} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="empty-cart">
-              <ShoppingBag size={28} aria-hidden="true" />
-              <h3>Giỏ hàng đang trống.</h3>
-              <p>Chọn một sản phẩm phù hợp để bắt đầu đơn hàng.</p>
-              <button type="button" onClick={closeCart}>
-                Tiếp tục chọn
-              </button>
-            </div>
-          )}
-        </div>
-
-        {checkoutState === "cart" && cart.length > 0 && (
-          <div className="cart-summary">
-            <div className="coupon-row">
-              <label>
-                <span>Mã giảm giá</span>
-                <input
-                  aria-describedby={couponValid ? "coupon-success" : undefined}
-                  value={coupon}
-                  onChange={(event) => {
-                    setCoupon(event.target.value);
-                    setCouponValid(false);
-                  }}
-                  placeholder="Ví dụ: TINH10"
-                />
-              </label>
-              <button type="button" onClick={applyCoupon}>
-                {couponValid ? (
-                  <>
-                    <Check size={15} aria-hidden="true" />
-                    Đã áp dụng
-                  </>
-                ) : (
-                  "Áp dụng"
-                )}
-              </button>
-            </div>
-            {couponValid && (
-              <p className="coupon-success" id="coupon-success" role="status">
-                TINH10 đang giảm 10% cho đơn này.
-              </p>
-            )}
-            <dl>
-              <div>
-                <dt>Tạm tính</dt>
-                <dd>{formatMoney(subtotal)}</dd>
-              </div>
-              {couponValid && (
-                <div>
-                  <dt>Giảm 10%</dt>
-                  <dd>−{formatMoney(discount)}</dd>
-                </div>
-              )}
-              <div className="total-row">
-                <dt>Tổng</dt>
-                <dd>{formatMoney(subtotal - discount)}</dd>
-              </div>
-            </dl>
-            <button
-              className="checkout-button"
-              type="button"
-              onClick={() => setCheckoutState("details")}
-            >
-              Tiếp tục đặt hàng
-              <ArrowRight size={17} aria-hidden="true" />
-            </button>
-            <small>Miễn phí giao hàng cho đơn từ 1.200.000 ₫.</small>
-          </div>
-        )}
-      </aside>
-      <button
-        className={`drawer-scrim ${cartOpen ? "is-open" : ""}`}
-        type="button"
-        aria-label="Đóng giỏ hàng"
-        aria-hidden={!cartOpen}
-        inert={!cartOpen}
-        onClick={closeCart}
       />
 
-      <dialog
-        className="booking-dialog"
-        ref={bookingDialog}
-        aria-labelledby="booking-title"
-        aria-describedby="booking-description"
-        onClick={(event) => {
-          if (event.target === event.currentTarget) event.currentTarget.close();
-        }}
-        onClose={() => {
+      <BookingDialog
+        bookingDialogRef={bookingDialog}
+        bookingServiceRef={bookingService}
+        bookingState={bookingState}
+        bookingReference={bookingReference}
+        selectedServiceId={selectedServiceId}
+        onSelectServiceId={setSelectedServiceId}
+        onSubmitBooking={submitBooking}
+        onCloseDialog={() => {
           if (bookingTimeout.current !== null) {
             window.clearTimeout(bookingTimeout.current);
             bookingTimeout.current = null;
@@ -1449,241 +622,23 @@ export default function SpaCommerce() {
           setBookingState("idle");
           bookingOpener.current?.focus();
         }}
-      >
-        <form
-          method="dialog"
-          onSubmit={submitBooking}
-          aria-busy={bookingState === "submitting"}
-        >
-          <header>
-            <div>
-              <span>Đặt lịch</span>
-              <h2 id="booking-title">Chọn một khoảng dành cho làn da.</h2>
-              <p id="booking-description">
-                Chọn dịch vụ và khung giờ; yêu cầu sẽ xuất hiện ngay trong khu quản trị.
-              </p>
-            </div>
-            <button
-              className="icon-button"
-              type="button"
-              aria-label="Đóng biểu mẫu"
-              onClick={() => bookingDialog.current?.close()}
-            >
-              <X size={21} aria-hidden="true" />
-            </button>
-          </header>
-          {bookingState === "confirmed" ? (
-            <div className="booking-confirmation" role="status">
-              <span>
-                <Check size={24} aria-hidden="true" />
-              </span>
-              <p>Yêu cầu đã được ghi nhận</p>
-              <h3>
-                TĨNH sẽ gọi để xác nhận khung giờ.
-              </h3>
-              <strong className="booking-reference">{bookingReference}</strong>
-              <small>
-                Bạn chưa cần thanh toán. Mọi thay đổi về dịch vụ có thể trao đổi
-                khi lễ tân liên hệ.
-              </small>
-              <button
-                className="primary-action"
-                type="button"
-                onClick={() => bookingDialog.current?.close()}
-              >
-                Hoàn tất
-                <ArrowRight size={18} aria-hidden="true" />
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="booking-form-grid">
-            <label>
-              <span>Liệu trình</span>
-              <select
-                ref={bookingService}
-                name="service"
-                required
-                value={selectedServiceId}
-                onChange={(event) => setSelectedServiceId(event.target.value)}
-              >
-                {services.map((service) => (
-                  <option key={service.id} value={service.id}>
-                    {service.name} · {formatMoney(service.price)}
-                  </option>
-                ))}
-              </select>
-              <small className="field-help">Bạn có thể đổi lựa chọn khi TĨNH gọi xác nhận.</small>
-            </label>
-            <label>
-              <span>Ngày mong muốn</span>
-              <input
-                name="date"
-                type="date"
-                required
-                min={new Date().toISOString().split("T")[0]}
-              />
-              <small className="field-help">Mở lịch từ thứ Hai đến Chủ Nhật.</small>
-            </label>
-            <label>
-              <span>Khung giờ</span>
-              <select name="time" required defaultValue="">
-                <option value="" disabled>
-                  Chọn khung giờ
-                </option>
-                <option>09:00–11:00</option>
-                <option>11:00–13:00</option>
-                <option>14:00–16:00</option>
-                <option>16:00–18:00</option>
-                <option>18:00–20:00</option>
-              </select>
-              <small className="field-help">Lễ tân sẽ xác nhận giờ bắt đầu chính xác.</small>
-            </label>
-            <label>
-              <span>Họ và tên</span>
-              <input name="name" autoComplete="name" required placeholder="Nguyễn An" />
-              <small className="field-help">Tên dùng để giữ lịch tại quầy.</small>
-            </label>
-            <label>
-              <span>Số điện thoại</span>
-              <input
-                name="phone"
-                type="tel"
-                autoComplete="tel"
-                required
-                inputMode="tel"
-                pattern="[0-9+\s]{9,14}"
-                placeholder="090 123 4567"
-              />
-              <small className="field-help">TĨNH chỉ dùng số này để xác nhận lịch.</small>
-            </label>
-            <label className="full-field">
-              <span>Điều bạn muốn chuyên viên biết</span>
-              <textarea
-                name="note"
-                placeholder="Da đang nhạy cảm sau treatment, routine hiện có…"
-              />
-              <small className="field-help">Không cần ghi thông tin bệnh án nhạy cảm tại đây.</small>
-            </label>
-              </div>
-              <footer>
-                <p>
-                  <Clock3 size={17} aria-hidden="true" />
-                  Yêu cầu lịch chưa phải xác nhận cuối cùng.
-                </p>
-                <button
-                  className="primary-action"
-                  type="submit"
-                  disabled={bookingState === "submitting"}
-                >
-                  {bookingState === "submitting" ? "Đang gửi…" : "Gửi yêu cầu lịch"}
-                  <ArrowRight size={18} aria-hidden="true" />
-                </button>
-              </footer>
-            </>
-          )}
-        </form>
-      </dialog>
+      />
 
-      <div
-        className={`chat-panel ${chatOpen ? "is-open" : ""}`}
-        id="advisor-chat"
-        role="dialog"
-        aria-labelledby="advisor-chat-title"
-        aria-hidden={!chatOpen}
-        inert={!chatOpen}
-      >
-        <header>
-          <div>
-            <span className="advisor-dot" aria-hidden="true" />
-            <div>
-              <strong id="advisor-chat-title">Tư vấn TĨNH</strong>
-              <small>Trợ lý chọn routine · phản hồi tức thì</small>
-            </div>
-          </div>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Đóng chat"
-            onClick={closeChat}
-          >
-            <X size={20} aria-hidden="true" />
-          </button>
-        </header>
-        <div
-          className="chat-messages"
-          role="log"
-          aria-live="polite"
-          aria-relevant="additions"
-        >
-          {messages.map((message, index) => (
-            <p className={message.from} key={`${message.from}-${index}`}>
-              {message.text}
-            </p>
-          ))}
-          {chatTyping && (
-            <p className="advisor typing-message">
-              <span />
-              <span />
-              <span />
-              <span className="sr-only">Chuyên viên đang nhập</span>
-            </p>
-          )}
-          <span ref={messagesEnd} aria-hidden="true" />
-        </div>
-        <form onSubmit={sendMessage} aria-busy={chatTyping}>
-          <label>
-            <span className="sr-only">Nhập câu hỏi</span>
-            <input
-              ref={chatInput}
-              name="message"
-              autoComplete="off"
-              placeholder="Hỏi về da hoặc lịch hẹn"
-            />
-          </label>
-          <button type="submit" aria-label="Gửi tin nhắn" disabled={chatTyping}>
-            <ArrowRight size={18} aria-hidden="true" />
-          </button>
-        </form>
-      </div>
-      <button
-        className="chat-trigger"
-        type="button"
-        ref={chatTrigger}
-        aria-label={chatOpen ? "Đóng tư vấn chat" : "Mở tư vấn chat"}
-        aria-expanded={chatOpen}
-        aria-controls="advisor-chat"
-        onClick={toggleChat}
-      >
-        {chatOpen ? (
-          <X size={21} aria-hidden="true" />
-        ) : (
-          <MessageCircle size={21} aria-hidden="true" />
-        )}
-        <span>{chatOpen ? "Đóng" : "Tư vấn"}</span>
-      </button>
+      <AdvisorChat
+        chatOpen={chatOpen}
+        onToggleChat={toggleChat}
+        onCloseChat={closeChat}
+        chatTriggerRef={chatTrigger}
+        chatInputRef={chatInput}
+        messages={messages}
+        chatTyping={chatTyping}
+        onSendMessage={sendMessage}
+        messagesEndRef={messagesEnd}
+      />
 
-      <aside className="mobile-booking-bar">
-        <span>Tư vấn da · từ 350.000 ₫</span>
-        <button type="button" onClick={openBooking}>
-          Đặt lịch
-        </button>
-      </aside>
+      <MobileBookingBar onOpenBooking={openBooking} />
 
-      {toast && (
-        <div
-          className={`toast toast-${toast.tone}`}
-          role={toast.tone === "alert" ? "alert" : "status"}
-          key={toast.id}
-        >
-          {toast.tone === "alert" ? (
-            <X size={18} aria-hidden="true" />
-          ) : (
-            <Check size={18} aria-hidden="true" />
-          )}
-          {toast.message}
-        </div>
-      )}
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }

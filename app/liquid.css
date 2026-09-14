@@ -1197,7 +1197,7 @@ textarea:disabled {
 .detail-copy {
   align-self: center;
   width: calc(100% - (var(--space-xl) * 2));
-  margin: calc(var(--space-4xl) + var(--space-md)) var(--space-xl) var(--space-2xl);
+  margin: calc(var(--space-4xl) + var(--space-xl)) var(--space-xl) var(--space-2xl);
   padding: var(--space-2xl);
   border: var(--rule-hair) solid var(--color-glass-border);
   border-radius: var(--radius-xl);
@@ -1208,9 +1208,11 @@ textarea:disabled {
 }
 
 .detail-title h1 {
+  max-width: 18ch;
   font-size: var(--text-display-s);
   font-style: normal;
-  line-height: 0.92;
+  line-height: 0.95;
+  text-wrap: balance;
 }
 
 .detail-title > p {
@@ -2488,7 +2490,7 @@ h3,
   position: relative;
   width: calc(100% - (var(--page-gutter) * 2));
   max-width: var(--page-max);
-  min-height: 58rem;
+  min-height: 64rem;
   margin: var(--space-4xl) auto;
   padding: 0;
   display: block;
@@ -2526,9 +2528,9 @@ h3,
   inset: var(--space-2xl) auto var(--space-2xl) var(--space-2xl);
   z-index: var(--z-raised);
   width: min(42rem, calc(100% - (var(--space-2xl) * 2)));
-  max-height: calc(100% - (var(--space-2xl) * 2));
+  max-height: none;
   padding: var(--space-2xl);
-  overflow-y: auto;
+  overflow-y: visible;
   border: var(--rule-hair) solid var(--color-glass-border);
   border-radius: var(--radius-xl);
   background: var(--color-glass-strong);
@@ -2928,6 +2930,22 @@ h3,
   border-radius: var(--radius-lg);
 }
 
+.admin-intro > button,
+.report-page > header > button {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border-color: var(--color-paper);
+  font-weight: 500;
+  box-shadow: var(--shadow-float);
+}
+
+.admin-intro > button:hover,
+.report-page > header > button:hover {
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+  border-color: var(--color-paper-2);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .product-card:hover .product-image::after,
   .product-card:focus-within .product-image::after {
@@ -3020,14 +3038,15 @@ h3,
 
   .treatment-section {
     width: calc(100% - (var(--space-md) * 2));
-    min-height: 68rem;
+    min-height: 76rem;
     margin-block: var(--space-3xl);
   }
 
   .treatment-copy {
     inset: auto var(--space-md) var(--space-md);
     width: auto;
-    max-height: calc(100% - (var(--space-md) * 2));
+    max-height: none;
+    overflow-y: visible;
     padding: var(--space-xl);
   }
 
@@ -3199,13 +3218,15 @@ h3,
   }
 
   .treatment-section {
-    min-height: 72rem;
+    min-height: 80rem;
   }
 
   .treatment-copy {
     inset: auto var(--space-xs) var(--space-xs);
     padding: var(--space-lg);
     border-radius: var(--radius-lg);
+    max-height: none;
+    overflow-y: visible;
   }
 
   .service-selector > button {
