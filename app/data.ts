@@ -28,7 +28,7 @@ export const products: Product[] = [
     description:
       "Tinh chất nền nước dành cho hàng rào da yếu, tập trung vào độ êm và khả năng giữ ẩm sau các liệu trình làm sạch sâu.",
     ingredients: ["Panthenol 3%", "Beta-glucan", "Ectoin", "Ceramide NP"],
-    usage: "Dùng 2-3 giọt sau toner, sáng và tối. Vỗ nhẹ trên da còn ẩm.",
+    usage: "Dùng 2–3 giọt sau toner, sáng và tối. Vỗ nhẹ trên da còn ẩm.",
     stock: 18,
   },
   {
@@ -92,7 +92,7 @@ export const products: Product[] = [
     description:
       "Kem chống nắng lai với bề mặt ráo, không nâng tông rõ và không để lại vệt trắng khi thoa đủ lượng.",
     ingredients: ["Uvinul A Plus", "Tinosorb S", "Niacinamide", "Tocopherol"],
-    usage: "Dùng hai ngón tay cho mặt và cổ, thoa lại sau 2-3 giờ khi hoạt động ngoài trời.",
+    usage: "Dùng hai ngón tay cho mặt và cổ, thoa lại sau 2–3 giờ khi hoạt động ngoài trời.",
     stock: 31,
   },
   {
@@ -108,7 +108,7 @@ export const products: Product[] = [
     description:
       "Thiết bị massage mặt cầm tay dành cho chu trình tại nhà, có ba mức nhiệt và chế độ tự ngắt sau mười phút.",
     ingredients: ["Đầu hợp kim y tế", "Sạc USB-C", "Ba mức nhiệt", "Túi bảo quản"],
-    usage: "Dùng trên da có serum trượt, di chuyển hướng lên trong 5-10 phút, 3 lần mỗi tuần.",
+    usage: "Dùng trên da có serum trượt, di chuyển hướng lên trong 5–10 phút, 3 lần mỗi tuần.",
     stock: 4,
   },
 ];

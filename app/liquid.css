@@ -1121,6 +1121,35 @@ textarea:disabled {
   -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 
+.toast-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: color-mix(in oklch, currentColor 72%, transparent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--dur-short) var(--ease-out),
+    background-color var(--dur-short) var(--ease-out);
+}
+
+.toast-dismiss:hover {
+  color: currentColor;
+  background: color-mix(in oklch, currentColor 14%, transparent);
+}
+
+.toast-dismiss:focus-visible {
+  outline: var(--rule-strong) solid currentColor;
+  outline-offset: var(--rule-focus-offset);
+}
+
 /* ---------- Product detail: photographic purchase studio ---------- */
 
 .detail-page {
@@ -2490,10 +2519,11 @@ h3,
   position: relative;
   width: calc(100% - (var(--page-gutter) * 2));
   max-width: var(--page-max);
-  min-height: 64rem;
   margin: var(--space-4xl) auto;
-  padding: 0;
-  display: block;
+  padding: var(--space-3xl) var(--space-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   overflow: clip;
   border-radius: var(--radius-xl);
   background: var(--color-ink);
@@ -2506,6 +2536,7 @@ h3,
   height: 100%;
   max-height: none;
   border-radius: inherit;
+  pointer-events: none;
 }
 
 .treatment-section > figure::after {
@@ -2524,13 +2555,12 @@ h3,
 }
 
 .treatment-copy {
-  position: absolute;
-  inset: var(--space-2xl) auto var(--space-2xl) var(--space-2xl);
+  position: relative;
   z-index: var(--z-raised);
-  width: min(42rem, calc(100% - (var(--space-2xl) * 2)));
-  max-height: none;
+  width: min(42rem, 100%);
+  margin: 0;
   padding: var(--space-2xl);
-  overflow-y: visible;
+  overflow: visible;
   border: var(--rule-hair) solid var(--color-glass-border);
   border-radius: var(--radius-xl);
   background: var(--color-glass-strong);
@@ -3038,16 +3068,15 @@ h3,
 
   .treatment-section {
     width: calc(100% - (var(--space-md) * 2));
-    min-height: 76rem;
     margin-block: var(--space-3xl);
+    padding: var(--space-md);
   }
 
   .treatment-copy {
-    inset: auto var(--space-md) var(--space-md);
-    width: auto;
-    max-height: none;
-    overflow-y: visible;
+    width: 100%;
+    margin: 0;
     padding: var(--space-xl);
+    overflow: visible;
   }
 
   .article-list {
@@ -3218,15 +3247,16 @@ h3,
   }
 
   .treatment-section {
-    min-height: 80rem;
+    padding: var(--space-xs);
+    border-radius: var(--radius-lg);
   }
 
   .treatment-copy {
-    inset: auto var(--space-xs) var(--space-xs);
-    padding: var(--space-lg);
-    border-radius: var(--radius-lg);
-    max-height: none;
-    overflow-y: visible;
+    width: 100%;
+    margin: 0;
+    padding: var(--space-lg) var(--space-md);
+    border-radius: var(--radius-md);
+    overflow: visible;
   }
 
   .service-selector > button {

@@ -27,6 +27,15 @@ export function BookingDialog({
   onSubmitBooking,
   onCloseDialog,
 }: BookingDialogProps) {
+  const requestClose = () => {
+    const dialog = bookingDialogRef.current;
+    if (dialog && typeof dialog.close === "function") {
+      dialog.close();
+    } else {
+      onCloseDialog();
+    }
+  };
+
   return (
     <dialog
       className="booking-dialog"
@@ -34,7 +43,7 @@ export function BookingDialog({
       aria-labelledby="booking-title"
       aria-describedby="booking-description"
       onClick={(event) => {
-        if (event.target === event.currentTarget) onCloseDialog();
+        if (event.target === event.currentTarget) requestClose();
       }}
       onClose={onCloseDialog}
     >
@@ -55,7 +64,7 @@ export function BookingDialog({
             className="icon-button"
             type="button"
             aria-label="Đóng biểu mẫu"
-            onClick={onCloseDialog}
+            onClick={requestClose}
           >
             <X size={20} aria-hidden="true" />
           </button>
@@ -76,7 +85,7 @@ export function BookingDialog({
             <button
               className="primary-action"
               type="button"
-              onClick={onCloseDialog}
+              onClick={requestClose}
             >
               Hoàn tất
               <ArrowRight size={18} aria-hidden="true" />

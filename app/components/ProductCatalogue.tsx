@@ -113,7 +113,7 @@ export function ProductCatalogue({
           >
             <option value="all">Mọi mức giá</option>
             <option value="under700">Dưới 700.000 ₫</option>
-            <option value="700to1000">700.000-1.000.000 ₫</option>
+            <option value="700to1000">700.000–1.000.000 ₫</option>
             <option value="over1000">Trên 1.000.000 ₫</option>
           </select>
         </label>
@@ -179,7 +179,7 @@ export function ProductCatalogue({
             {price === "under700"
               ? "Dưới 700.000 ₫"
               : price === "700to1000"
-                ? "700.000-1.000.000 ₫"
+                ? "700.000–1.000.000 ₫"
                 : "Trên 1.000.000 ₫"}
             <X size={14} aria-hidden="true" />
           </button>

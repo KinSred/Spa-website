@@ -281,6 +281,9 @@ export default function SpaCommerce() {
     setMobileOpen(false);
     setMegaOpen(false);
     setChatOpen(false);
+    if (bookingDialog.current?.open) {
+      bookingDialog.current.close();
+    }
   };
 
   const openCart = () => {
@@ -377,6 +380,13 @@ export default function SpaCommerce() {
     );
     if (removesFocusedLine) {
       window.requestAnimationFrame(() => cartClose.current?.focus());
+    }
+  };
+
+  const handleCouponChange = (value: string) => {
+    setCoupon(value);
+    if (couponValid) {
+      setCouponValid(false);
     }
   };
 
@@ -593,7 +603,7 @@ export default function SpaCommerce() {
         cart={cart}
         onUpdateQuantity={updateQuantity}
         coupon={coupon}
-        onCouponChange={setCoupon}
+        onCouponChange={handleCouponChange}
         couponValid={couponValid}
         onApplyCoupon={applyCoupon}
         subtotal={subtotal}
