@@ -2,7 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Minus, Plus, ShoppingBag } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Clock,
+  Minus,
+  Plus,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { formatMoney, type Product } from "../../data";
 
@@ -60,73 +70,126 @@ export default function ProductDetail({ product }: { product: Product }) {
     }, 2500);
   };
 
+  const itemIndex = String(product.id).padStart(2, "0");
+
   return (
-    <main className="detail-page detail-view">
-      <header className="detail-nav">
-        <Link className="wordmark" href="/">
-          TĨNH
-          <span>skin atelier</span>
-        </Link>
+    <main className="detail-page detail-view purchase-studio">
+      {/* Editorial Navigation Bar */}
+      <header className="detail-nav studio-nav">
+        <div className="studio-nav-brand">
+          <Link className="wordmark" href="/" aria-label="TĨNH - Về trang chủ">
+            TĨNH
+            <span>skin atelier</span>
+          </Link>
+          <span className="studio-nav-pill" aria-hidden="true">
+            HỒ SƠ CÔNG THỨC · FORMULE {itemIndex}
+          </span>
+        </div>
+
         <Link className="back-link" href="/#catalogue">
           <ArrowLeft size={17} aria-hidden="true" />
           Trở lại cửa hàng
         </Link>
       </header>
 
-      <section className="product-detail">
-        <figure className="detail-image">
-          <Image
-            src={product.image}
-            alt={`${product.name}, ${product.note}`}
-            width={600}
-            height={800}
-            unoptimized
-            priority
-            sizes="(min-width: 960px) 48vw, 100vw"
-          />
-          {product.stock <= 5 && <figcaption>Chỉ còn {product.stock} sản phẩm</figcaption>}
-        </figure>
+      {/* Main Luxury Purchase Studio Canvas */}
+      <section className="product-detail studio-canvas" aria-label={`Chi tiết sản phẩm ${product.name}`}>
+        {/* Left Column: Photo Studio Stage & Formulation Badges */}
+        <div className="studio-gallery-stage">
+          <figure className="detail-image studio-figure">
+            <Image
+              src={product.image}
+              alt={`${product.name}, ${product.note}`}
+              width={700}
+              height={900}
+              unoptimized
+              priority
+              sizes="(min-width: 960px) 48vw, 100vw"
+            />
+            <div className="studio-image-badges" aria-label="Thông tin mẻ điều chế">
+              <span className="formulation-stamp">
+                DOSSIER · FORMULE {itemIndex}
+              </span>
+              {product.stock <= 5 ? (
+                <figcaption className="studio-stock-alert">
+                  Chỉ còn {product.stock} sản phẩm
+                </figcaption>
+              ) : (
+                <span className="studio-stock-ready">
+                  Sẵn sàng vận hành tại atelier
+                </span>
+              )}
+            </div>
+          </figure>
 
-        <div className="detail-copy">
-          <div className="detail-title">
-            <p>{product.category}</p>
-            <h1>{product.name}</h1>
-            <span>{product.note}</span>
-            <strong>{formatMoney(product.price)}</strong>
+          {/* Botanical Quality Commits */}
+          <div className="studio-formula-highlights" aria-label="Tiêu chuẩn điều chế">
+            <div className="highlight-item">
+              <Sparkles size={16} aria-hidden="true" />
+              <span>Chiết xuất thực vật tinh khiết</span>
+            </div>
+            <div className="highlight-item">
+              <ShieldCheck size={16} aria-hidden="true" />
+              <span>Phù hợp màng lipid nhạy cảm</span>
+            </div>
+            <div className="highlight-item">
+              <Clock size={16} aria-hidden="true" />
+              <span>Điều chế mẻ nhỏ bảo toàn hoạt tính</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Editorial Formulation Monograph & Purchase Console */}
+        <div className="detail-copy studio-dossier-console">
+          <div className="detail-title studio-title-block">
+            <div className="studio-kicker-row">
+              <span className="category-kicker">{product.category}</span>
+              <span className="skin-match-tag">{product.skin[0]}</span>
+            </div>
+
+            <h1 className="studio-product-heading">{product.name}</h1>
+
+            <span className="studio-sensorial-note">{product.note}</span>
+
+            <div className="studio-price-block">
+              <span className="price-lead-label">Giá niêm yết chính hãng</span>
+              <strong className="studio-price-display">{formatMoney(product.price)}</strong>
+            </div>
           </div>
 
-          <p className="detail-description">{product.description}</p>
+          <p className="detail-description studio-description-text">{product.description}</p>
 
-          <dl className="detail-specs">
-            <div>
+          <dl className="detail-specs studio-specs-grid">
+            <div className="spec-item">
               <dt>Phù hợp</dt>
               <dd>{product.skin.join(" · ")}</dd>
             </div>
-            <div>
+            <div className="spec-item">
               <dt>Nhu cầu</dt>
               <dd>{product.concern.join(" · ")}</dd>
             </div>
-            <div>
+            <div className="spec-item">
               <dt>Cách dùng</dt>
               <dd>{product.usage}</dd>
             </div>
           </dl>
 
-          <div className="ingredient-list">
+          <div className="ingredient-list studio-ingredients-section">
             <h2>Điểm chính trong công thức</h2>
-            <ul>
+            <ul className="studio-ingredients-list">
               {product.ingredients.map((ingredient) => (
                 <li key={ingredient}>
                   <Check size={16} aria-hidden="true" />
-                  {ingredient}
+                  <span>{ingredient}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="detail-purchase">
+          {/* Tactile Purchase Action Dock */}
+          <div className="detail-purchase studio-purchase-dock">
             <div
-              className="quantity-control detail-quantity"
+              className="quantity-control detail-quantity studio-quantity-stepper"
               role="group"
               aria-label={`Số lượng ${product.name}`}
             >
@@ -150,8 +213,9 @@ export default function ProductDetail({ product }: { product: Product }) {
                 <Plus size={16} aria-hidden="true" />
               </button>
             </div>
+
             <button
-              className={`detail-add ${added ? "is-success" : ""}`}
+              className={`detail-add studio-add-cta ${added ? "is-success" : ""}`}
               type="button"
               disabled={product.stock === 0}
               onClick={addToCart}
@@ -169,7 +233,8 @@ export default function ProductDetail({ product }: { product: Product }) {
             </button>
           </div>
 
-          <div className="detail-purchase-meta">
+          {/* Dynamic Cart & Stock Feedback */}
+          <div className="detail-purchase-meta studio-purchase-meta">
             <span role="status" aria-live="polite">
               {added
                 ? addedQuantity && addedQuantity > 0
@@ -177,19 +242,23 @@ export default function ProductDetail({ product }: { product: Product }) {
                   : "Giỏ đã đạt số lượng tồn kho hiện có."
                 : quantity >= product.stock
                   ? `Đã chọn tối đa ${product.stock} sản phẩm còn lại.`
-                  : `${product.stock} sản phẩm đang có sẵn.`}
+                  : `${product.stock} sản phẩm đang có sẵn tại atelier.`}
             </span>
             {added && (
-              <Link href="/?cart=open">
+              <Link className="studio-view-cart-link" href="/?cart=open">
                 Xem giỏ hàng
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
             )}
           </div>
 
-          <Link className="consult-link" href="/#treatments">
-            Chưa chắc sản phẩm phù hợp? Xem lịch tư vấn
-            <ArrowRight size={17} aria-hidden="true" />
+          {/* Atelier Consultation Bridge */}
+          <Link className="consult-link studio-consultation-bridge" href="/#treatments">
+            <div className="bridge-copy">
+              <strong>Chưa chắc sản phẩm phù hợp? Xem lịch tư vấn</strong>
+              <p>Chuyên viên TĨNH sẽ soi da và hướng dẫn chu trình kết hợp tại atelier.</p>
+            </div>
+            <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </div>
       </section>
