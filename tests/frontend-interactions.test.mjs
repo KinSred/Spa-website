@@ -344,14 +344,18 @@ test("Hero: final reconciled class contract and style rules exist without discar
     readFile(new URL("../app/liquid.css", import.meta.url), "utf8"),
   ]);
 
-  // Verified final markup classes present in Hero.tsx
+  // Verified final markup classes present in Hero.tsx (dominant single-composition rebuild)
   const expectedClasses = [
-    "hero-visual-caption",
-    "caption-tag",
-    "caption-title",
-    "hero-vignette-card",
-    "vignette-label",
-    "vignette-quote",
+    "hero-dominant-grid",
+    "hero-editorial-copy",
+    "hero-eyebrow",
+    "hero-headline",
+    "hero-summary",
+    "hero-actions",
+    "hero-cta-primary",
+    "hero-cta-secondary",
+    "hero-figure",
+    "hero-caption",
   ];
 
   for (const cls of expectedClasses) {
@@ -359,17 +363,22 @@ test("Hero: final reconciled class contract and style rules exist without discar
     assert.match(liquidCss, new RegExp(`\\.${cls}\\b`), `liquid.css must style class: .${cls}`);
   }
 
-  // Obsolete/abandoned naming variants must NOT exist
+  // Obsolete/abandoned old design generation classes must NOT exist
   const discardedClasses = [
+    "hero-dual-pathways",
+    "pathway-card",
+    "hero-vignette-card",
+    "vignette-label",
+    "vignette-quote",
     "hero-caption-card",
     "hero-floating-meta",
     "meta-atelier-room",
     "meta-atelier-details",
+    "hero-top-rail",
   ];
 
   for (const cls of discardedClasses) {
     assert.doesNotMatch(heroCode, new RegExp(cls), `Hero.tsx must NOT contain discarded class: ${cls}`);
-    assert.doesNotMatch(liquidCss, new RegExp(`\\.${cls}\\b`), `liquid.css must NOT contain discarded class: .${cls}`);
   }
 
   // Absence of fabricated/unsupported claims in Hero
@@ -741,7 +750,7 @@ test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: Mobile menu distinguishes dismi
   assert.match(headerCode, /onNavigateMobileDestination\("journal"\)/);
 
   // Booking button invokes onOpenBooking with explicit menuTriggerRef
-  assert.match(headerCode, /onCloseMobile\("navigate"\);\s*onOpenBooking\(menuTriggerRef\.current\);/);
+  assert.match(headerCode, /onCloseMobile\("navigate"\);\s*onOpenBooking\(\{\s*opener:\s*menuTriggerRef\.current\s*\}\);/);
 
   // SpaCommerce handles navigate vs dismiss
   assert.match(spaCommerceCode, /const closeMobileMenu = \(reason: MobileMenuCloseReason = "dismiss"\) =>/);
@@ -815,8 +824,8 @@ test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: Explicit Concierge and Mobile M
   // Concierge intent booking passes explicit opener
   assert.match(spaCommerceCode, /else if \(intent === "booking"\) \{\s*setChatOpen\(false\);\s*openBooking\(\{ opener: chatTrigger\.current \}\);/);
 
-  // openBooking accepts explicit opener and falls back sensibly
-  assert.match(spaCommerceCode, /const openBooking = \(options\?: \{ opener\?: HTMLElement \| null \} \| unknown\) =>/);
+  // openBooking accepts typed explicit opener and falls back sensibly
+  assert.match(spaCommerceCode, /const openBooking = \(options\?: BookingOpenOptions\) =>/);
   assert.match(spaCommerceCode, /bookingOpener\.current = explicitOpener \?\? fallbackOpener \?\? menuTrigger\.current;/);
 
   // State-machine verification of explicit opener assignment

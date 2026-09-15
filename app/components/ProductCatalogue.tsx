@@ -78,109 +78,111 @@ export function ProductCatalogue({
 
   return (
     <section className="catalogue-editorial" id="catalogue" aria-label="Bộ sưu tập sản phẩm">
-      {/* Section Header */}
-      <header className="catalogue-head">
-        <div className="catalogue-head-text">
-          <div className="catalogue-head-meta">
-            <span className="catalogue-badge">BỘ SƯU TẬP TẠI NHÀ</span>
-            <span className="catalogue-roman">III · FORMULATIONS</span>
+      {/* Section Header with Integrated Discovery Controls */}
+      <header className="catalogue-head catalogue-merchandising-head">
+        <div className="catalogue-head-top">
+          <div className="catalogue-head-text">
+            <div className="catalogue-head-meta">
+              <span className="catalogue-badge">BỘ SƯU TẬP TẠI NHÀ</span>
+              <span className="catalogue-roman">III · FORMULATIONS</span>
+            </div>
+            <h2 className="catalogue-title" ref={catalogueDestinationRef} tabIndex={-1}>
+              Chọn theo làn da hôm nay.
+            </h2>
+            <p className="catalogue-subtitle">
+              Mỹ phẩm và thiết bị được chọn theo tình trạng da, nhu cầu và ngân sách.
+            </p>
           </div>
-          <h2 className="catalogue-title" ref={catalogueDestinationRef} tabIndex={-1}>
-            Chọn theo làn da hôm nay.
-          </h2>
-          <p className="catalogue-subtitle">
-            Mỹ phẩm và thiết bị được chọn theo tình trạng da, nhu cầu và ngân sách.
-          </p>
+
+          <span className="catalogue-count-badge" aria-live="polite" aria-atomic="true">
+            {products.length} công thức sẵn có
+          </span>
         </div>
 
-        <span className="catalogue-count-badge" aria-live="polite" aria-atomic="true">
-          {products.length} công thức sẵn có
-        </span>
+        {/* Integrated Merchandising Discovery Bar */}
+        <div className="catalogue-filter-bar catalogue-integrated-controls">
+          {/* Skin Type Category Quick Chips */}
+          <div className="filter-chips-rail" role="group" aria-label="Lọc theo loại da">
+            {skinOptions.map((opt) => {
+              const active = skin === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  aria-pressed={active}
+                  ref={opt === "Tất cả" ? defaultSkinChipRef : undefined}
+                  className={`filter-chip ${active ? "is-active" : ""}`}
+                  onClick={() => onSkinChange(opt)}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Secondary Filters & Search Bar */}
+          <div className="catalogue-tools-row">
+            <label className="search-box">
+              <Search size={16} aria-hidden="true" />
+              <span className="sr-only">Tìm sản phẩm</span>
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                placeholder="Tìm theo tên hoặc hoạt chất..."
+              />
+            </label>
+
+            <div className="select-box-wrap">
+              <label className="select-box">
+                <span className="sr-only">Nhu cầu</span>
+                <select
+                  ref={concernSelectRef}
+                  value={concern}
+                  onChange={(e) => onConcernChange(e.target.value)}
+                >
+                  {concernOptions.map((opt) => (
+                    <option key={opt}>{opt}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="select-box">
+                <span className="sr-only">Mức giá</span>
+                <select
+                  ref={priceSelectRef}
+                  value={price}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (isPriceFilterId(val)) {
+                      onPriceChange(val);
+                    }
+                  }}
+                >
+                  {PRICE_FILTERS.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            {/* Reset Action */}
+            <button
+              className="reset-btn"
+              type="button"
+              disabled={!hasActiveFilters}
+              onClick={onResetFilters}
+              aria-label="Đặt lại toàn bộ bộ lọc"
+            >
+              <RotateCcw size={15} aria-hidden="true" />
+              <span>Đặt lại</span>
+            </button>
+          </div>
+        </div>
       </header>
-
-      {/* Modern Curated Filter Bar */}
-      <div className="catalogue-filter-bar">
-        {/* Skin Type Category Quick Chips */}
-        <div className="filter-chips-rail" role="group" aria-label="Lọc theo loại da">
-          {skinOptions.map((opt) => {
-            const active = skin === opt;
-            return (
-              <button
-                key={opt}
-                type="button"
-                aria-pressed={active}
-                ref={opt === "Tất cả" ? defaultSkinChipRef : undefined}
-                className={`filter-chip ${active ? "is-active" : ""}`}
-                onClick={() => onSkinChange(opt)}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Secondary Filters & Search Bar */}
-        <div className="catalogue-tools-row">
-          <label className="search-box">
-            <Search size={16} aria-hidden="true" />
-            <span className="sr-only">Tìm sản phẩm</span>
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Tìm theo tên hoặc hoạt chất..."
-            />
-          </label>
-
-          <div className="select-box-wrap">
-            <label className="select-box">
-              <span className="sr-only">Nhu cầu</span>
-              <select
-                ref={concernSelectRef}
-                value={concern}
-                onChange={(e) => onConcernChange(e.target.value)}
-              >
-                {concernOptions.map((opt) => (
-                  <option key={opt}>{opt}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="select-box">
-              <span className="sr-only">Mức giá</span>
-              <select
-                ref={priceSelectRef}
-                value={price}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (isPriceFilterId(val)) {
-                    onPriceChange(val);
-                  }
-                }}
-              >
-                {PRICE_FILTERS.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {/* Reset Action */}
-          <button
-            className="reset-btn"
-            type="button"
-            disabled={!hasActiveFilters}
-            onClick={onResetFilters}
-            aria-label="Đặt lại toàn bộ bộ lọc"
-          >
-            <RotateCcw size={15} aria-hidden="true" />
-            <span>Đặt lại</span>
-          </button>
-        </div>
-      </div>
 
       {/* Active Filter Tags */}
       {hasActiveFilters && (

@@ -49,25 +49,25 @@ export function AdvisorChat({
   return (
     <>
       <div
-        className={`chat-panel concierge-panel ${chatOpen ? "is-open" : ""}`}
+        className={`chat-panel concierge-panel atelier-care-tray ${chatOpen ? "is-open" : ""}`}
         id="advisor-chat"
         role="region"
         aria-labelledby="advisor-chat-title"
         aria-hidden={!chatOpen}
         inert={!chatOpen}
       >
-        <header className="concierge-header">
+        <header className="concierge-header care-tray-header">
           <div className="advisor-header-info">
             <span className="concierge-badge" aria-hidden="true">
-              <Sparkles size={14} />
+              <Sparkles size={15} />
             </span>
             <div>
-              <strong id="advisor-chat-title">TĨNH Concierge</strong>
-              <small>Trợ lý tìm kiếm routine &amp; liệu trình</small>
+              <strong id="advisor-chat-title">TĨNH Atelier Care Guide</strong>
+              <small>Định hướng chu trình &amp; gợi ý liệu trình chuyên biệt</small>
             </div>
           </div>
           <button
-            className="icon-button"
+            className="icon-button care-tray-close"
             type="button"
             aria-label="Đóng trợ lý tư vấn"
             onClick={onCloseChat}
@@ -78,7 +78,7 @@ export function AdvisorChat({
 
         {/* Quick Welcome Intent Options */}
         <div className="concierge-quick-strip" aria-label="Gợi ý nhanh">
-          <span>Gợi ý khám phá:</span>
+          <span className="quick-strip-label">ĐỊNH HƯỚNG NHANH:</span>
           <div className="quick-buttons-row">
             {quickIntents.map((item) => (
               <button
@@ -94,29 +94,38 @@ export function AdvisorChat({
         </div>
 
         <div
-          className="chat-messages"
+          className="chat-messages care-tray-messages"
           role="log"
           aria-live="polite"
           aria-relevant="additions"
         >
           {messages.map((message, index) => (
-            <p className={message.from} key={`${message.from}-${index}`}>
-              {message.text}
-            </p>
+            <div
+              className={`care-message-item is-${message.from}`}
+              key={`${message.from}-${index}`}
+            >
+              <span className="message-author-tag">
+                {message.from === "advisor" ? "TĨNH ATELIER" : "BẠN"}
+              </span>
+              <p className={message.from}>{message.text}</p>
+            </div>
           ))}
           {chatTyping && (
-            <p className="advisor typing-message">
-              <span />
-              <span />
-              <span />
-              <span className="sr-only">Đang tìm thông tin phù hợp</span>
-            </p>
+            <div className="care-message-item is-advisor">
+              <span className="message-author-tag">TĨNH ATELIER</span>
+              <p className="advisor typing-message">
+                <span />
+                <span />
+                <span />
+                <span className="sr-only">Đang tìm thông tin phù hợp</span>
+              </p>
+            </div>
           )}
           <span ref={messagesEndRef} aria-hidden="true" />
         </div>
 
-        <form className="concierge-input-form" onSubmit={onSendMessage} aria-busy={chatTyping}>
-          <label>
+        <form className="concierge-input-form care-tray-form" onSubmit={onSendMessage} aria-busy={chatTyping}>
+          <label className="care-input-wrap">
             <span className="sr-only">Nhập câu hỏi về da hoặc liệu trình</span>
             <input
               ref={chatInputRef}
@@ -125,14 +134,14 @@ export function AdvisorChat({
               placeholder="Hỏi về sản phẩm, loại da hoặc dịch vụ…"
             />
           </label>
-          <button type="submit" aria-label="Gửi tin nhắn" disabled={chatTyping}>
+          <button type="submit" className="care-submit-btn" aria-label="Gửi tin nhắn" disabled={chatTyping}>
             <ArrowRight size={18} aria-hidden="true" />
           </button>
         </form>
       </div>
 
       <button
-        className="chat-trigger concierge-trigger"
+        className="chat-trigger concierge-trigger care-tray-trigger"
         type="button"
         ref={chatTriggerRef}
         aria-label={chatOpen ? "Đóng trợ lý tư vấn" : "Mở trợ lý tư vấn"}
@@ -141,9 +150,9 @@ export function AdvisorChat({
         onClick={onToggleChat}
       >
         {chatOpen ? (
-          <X size={20} aria-hidden="true" />
+          <X size={18} aria-hidden="true" />
         ) : (
-          <MessageCircle size={20} aria-hidden="true" />
+          <MessageCircle size={18} aria-hidden="true" />
         )}
         <span>{chatOpen ? "Đóng" : "Tư vấn"}</span>
       </button>

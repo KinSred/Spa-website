@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { RefObject, useEffect, useRef } from "react";
+import type { BookingOpenOptions } from "./BookingDialog";
 
 export type MobileMenuCloseReason = "dismiss" | "navigate";
 
@@ -26,7 +27,7 @@ type HeaderProps = {
   megaTriggerRef: RefObject<HTMLButtonElement | null>;
   onFilterSkin: (skin: string) => void;
   onFilterConcern: (concern: string) => void;
-  onOpenBooking: (explicitOpener?: HTMLElement | null) => void;
+  onOpenBooking: (options?: BookingOpenOptions) => void;
   cartCount: number;
   cartOpen: boolean;
   cartTriggerRef: RefObject<HTMLButtonElement | null>;
@@ -332,7 +333,7 @@ export function Header({
               type="button"
               onClick={() => {
                 onCloseMobile("navigate");
-                onOpenBooking(menuTriggerRef.current);
+                onOpenBooking({ opener: menuTriggerRef.current });
               }}
             >
               Đặt lịch tư vấn

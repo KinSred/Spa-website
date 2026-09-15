@@ -528,13 +528,8 @@ export default function SpaCommerce() {
     }, 760);
   };
 
-  const openBooking = (options?: { opener?: HTMLElement | null } | unknown) => {
-    const explicitOpener =
-      options && typeof options === "object" && "opener" in options
-        ? (options as BookingOpenOptions).opener
-        : options instanceof HTMLElement
-          ? options
-          : null;
+  const openBooking = (options?: BookingOpenOptions) => {
+    const explicitOpener = options?.opener ?? null;
     const active = document.activeElement as HTMLElement | null;
     const fallbackOpener = active?.closest?.(".mobile-menu")
       ? menuTrigger.current
@@ -556,7 +551,7 @@ export default function SpaCommerce() {
 
   const chooseServiceAndBook = (serviceId: string) => {
     setSelectedServiceId(serviceId);
-    window.requestAnimationFrame(openBooking);
+    window.requestAnimationFrame(() => openBooking());
   };
 
   const submitBooking = (event: FormEvent<HTMLFormElement>) => {

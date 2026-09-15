@@ -24,15 +24,15 @@ export function ProductCard({
   const itemIndex = String(index + 1).padStart(2, "0");
 
   return (
-    <article className="product-card-editorial">
-      {/* Product Image Stage */}
-      <div className="card-stage">
+    <article className="formulation-item product-card-editorial">
+      {/* Visual Presentation Dock */}
+      <div className="item-visual-dock card-stage">
         <Link
-          className="card-image-link"
+          className="item-image-anchor card-image-link"
           href={`/san-pham/${product.slug}`}
           aria-label={`Xem chi tiết ${product.name}`}
         >
-          <div className="card-image-wrap">
+          <div className="item-image-wrapper card-image-wrap">
             <Image
               src={product.image}
               alt={`${product.name}, ${product.note}`}
@@ -45,44 +45,45 @@ export function ProductCard({
           </div>
 
           {/* Editorial Index Stamp */}
-          <span className="card-index-stamp">
+          <span className="item-numeral-stamp card-index-stamp">
             <span>FORMULE</span>
             <strong>{itemIndex}</strong>
           </span>
 
-          {/* Stock or Note Pill */}
+          {/* Availability or Texture Status */}
           {product.stock <= 5 ? (
-            <span className="card-stock-pill">Chỉ còn {product.stock}</span>
+            <span className="item-stock-pill card-stock-pill">Chỉ còn {product.stock}</span>
           ) : (
-            <span className="card-texture-pill">{product.note.split("·")[1]?.trim() || product.note}</span>
+            <span className="item-texture-pill card-texture-pill">{product.note.split("·")[1]?.trim() || product.note}</span>
           )}
         </Link>
       </div>
 
-      {/* Product Information Dossier */}
-      <div className="card-dossier">
-        <div className="card-meta-rail">
-          <span className="card-category">{product.category}</span>
-          <span className="card-skin-target">{product.skin[0]}</span>
+      {/* Formulation Monograph Body */}
+      <div className="item-monograph-body card-dossier">
+        <div className="item-taxonomy-rail card-meta-rail">
+          <span className="item-category card-category">{product.category}</span>
+          <span className="item-taxonomy-sep" aria-hidden="true">/</span>
+          <span className="item-skin-target card-skin-target">{product.skin[0]}</span>
         </div>
 
-        <h3 className="card-title">
+        <h3 className="item-title card-title">
           <Link href={`/san-pham/${product.slug}`}>{product.name}</Link>
         </h3>
 
-        <div className="card-key-ingredients">
+        <div className="item-actives-list card-key-ingredients">
           <Sparkles size={13} aria-hidden="true" />
           <span>{product.ingredients.slice(0, 2).join(" · ")}</span>
         </div>
 
-        <div className="card-foot">
-          <div className="card-pricing">
+        <div className="item-purchase-strip card-foot">
+          <div className="item-price-block card-pricing">
             <span className="price-label">Giá niêm yết</span>
             <strong className="price-value">{formatMoney(product.price)}</strong>
           </div>
 
           <button
-            className={`card-action-btn ${justAdded ? "is-added" : ""}`}
+            className={`item-action-button card-action-btn ${justAdded ? "is-added" : ""}`}
             type="button"
             disabled={atStockLimit}
             onClick={() => onAddToCart(product)}
