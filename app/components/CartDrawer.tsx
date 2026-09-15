@@ -149,7 +149,7 @@ export function CartDrawer({
         </header>
 
         {/* Real Customer Progression Stepper */}
-        {cart.length > 0 && checkoutState !== "confirmed" && (
+        {(cart.length > 0 || checkoutState !== "cart") && (
           <nav className="checkout-stepper" aria-label="Tiến trình đặt hàng">
             <ol className="stepper-track">
               <li
@@ -163,7 +163,9 @@ export function CartDrawer({
                 className={`step-item ${
                   checkoutState === "details"
                     ? "is-current"
-                    : checkoutState === "payment" || checkoutState === "processing"
+                    : checkoutState === "payment" ||
+                        checkoutState === "processing" ||
+                        checkoutState === "confirmed"
                       ? "is-complete"
                       : "is-pending"
                 }`}
@@ -176,7 +178,7 @@ export function CartDrawer({
                 className={`step-item ${
                   checkoutState === "payment"
                     ? "is-current"
-                    : checkoutState === "processing"
+                    : checkoutState === "processing" || checkoutState === "confirmed"
                       ? "is-complete"
                       : "is-pending"
                 }`}
@@ -185,7 +187,16 @@ export function CartDrawer({
                 <span className="step-number">3</span>
                 <span className="step-name">Thanh toán</span>
               </li>
-              <li className="step-item is-pending">
+              <li
+                className={`step-item ${
+                  checkoutState === "confirmed"
+                    ? "is-current is-complete"
+                    : checkoutState === "processing"
+                      ? "is-pending is-loading"
+                      : "is-pending"
+                }`}
+                aria-current={checkoutState === "confirmed" ? "step" : undefined}
+              >
                 <span className="step-number">4</span>
                 <span className="step-name">Hoàn tất</span>
               </li>
@@ -227,8 +238,7 @@ export function CartDrawer({
               </div>
 
               <p className="confirmation-truth-note">
-                Đơn hàng đã được lưu lại an toàn trên thiết bị này. TĨNH sẽ đóng gói và
-                giao theo thông tin người nhận đã ghi.
+                Đơn hàng demo đã được ghi nhận trên thiết bị này. Mã đơn hàng được tạo để theo dõi trong quy trình vận hành mô phỏng.
               </p>
 
               <div className="confirmation-actions">
@@ -312,7 +322,7 @@ export function CartDrawer({
                   <CreditCard size={20} aria-hidden="true" />
                   <div className="option-copy">
                     <strong>Chuyển khoản ngân hàng (Mô phỏng)</strong>
-                    <small>Hệ thống ghi nhận đơn và hướng dẫn chuyển khoản trong bản demo.</small>
+                    <small>Phương thức mô phỏng trong bản demo; không yêu cầu chuyển tiền thực tế.</small>
                   </div>
                 </label>
               </fieldset>
@@ -597,7 +607,7 @@ export function CartDrawer({
 
             <small className="shipping-note">
               {isFreeShipping
-                ? "Đơn hàng đủ điều kiện miễn phí giao nhận toàn quốc."
+                ? "Đơn hàng đủ điều kiện miễn phí giao hàng."
                 : `Miễn phí giao hàng từ ${formatMoney(FREE_SHIPPING_THRESHOLD)}.`}
             </small>
           </div>

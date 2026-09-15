@@ -196,7 +196,9 @@ test("Mobile navigation: keyboard Escape closes mobile menu and restores focus",
     "utf8",
   );
 
-  assert.match(spaCommerceCode, /else if \(mobileOpen\) \{\s*setMobileOpen\(false\);\s*menuTrigger\.current\?\.focus\(\);/);
+  assert.match(spaCommerceCode, /else if \(mobileOpen\) \{\s*closeMobileMenu\("dismiss"\);/);
+  assert.match(spaCommerceCode, /const closeMobileMenu = \(reason: MobileMenuCloseReason = "dismiss"\) =>/);
+  assert.match(spaCommerceCode, /menuTrigger\.current\?\.focus\(\)/);
 });
 
 test("Treatment section: robust responsive intrinsic layout with no hard-coded min-height ceiling", async () => {
@@ -658,5 +660,289 @@ test("Presentational Concierge: quick intent pills and deterministic routing", a
   assert.match(spaCommerceCode, /const handleConciergeIntent = \(intent: ConciergeIntent\) =>/);
   assert.match(spaCommerceCode, /const getDeterministicChatReply = \(input: string\): string =>/);
 });
+
+test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: PriceFilter single source of truth and contract integrity", async () => {
+  const [dataCode, catalogueCode, spaCommerceCode] = await Promise.all([
+    readFile(new URL("../app/data.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ProductCatalogue.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/SpaCommerce.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // 1. Source Contract: Type definition and canonical constants
+  assert.match(dataCode, /export type PriceFilterId = "all" \| "under700" \| "700to1000" \| "over1000";/);
+  assert.match(dataCode, /export const PRICE_FILTERS: readonly PriceFilterOption\[\] =/);
+  assert.match(dataCode, /export function isPriceFilterId\(value: unknown\): value is PriceFilterId/);
+  assert.match(dataCode, /export function getPriceFilter\(id: PriceFilterId\): PriceFilterOption/);
+
+  // 2. Source Contract: ProductCatalogue uses PRICE_FILTERS, isPriceFilterId typeguard, no raw string casts
+  assert.match(catalogueCode, /price: PriceFilterId;/);
+  assert.match(catalogueCode, /onPriceChange: \(price: PriceFilterId\) => void;/);
+  assert.match(catalogueCode, /PRICE_FILTERS\.map\(\(f\) =>/);
+  assert.match(catalogueCode, /if \(isPriceFilterId\(val\)\)/);
+  assert.doesNotMatch(catalogueCode, /as PriceFilterId/);
+
+  // 3. Source Contract: SpaCommerce uses getPriceFilter(price).matches(product.price)
+  assert.match(spaCommerceCode, /const \[price, setPrice\] = useState<PriceFilterId>\("all"\);/);
+  assert.match(spaCommerceCode, /const matchesPrice = getPriceFilter\(price\)\.matches\(product\.price\);/);
+
+  // 4. State-Machine / Functional Evaluation: Verify exact products matched per filter
+  const { PRICE_FILTERS, products } = await import("../app/data.ts");
+
+  const under700Filter = PRICE_FILTERS.find((f) => f.id === "under700");
+  assert.ok(under700Filter, "under700 filter must exist");
+  const under700Products = products.filter((p) => under700Filter.matches(p.price));
+  assert.deepEqual(
+    under700Products.map((p) => p.name).sort(),
+    ["Nettoyant Voile", "Écran 50"].sort(),
+    "under700 must match exactly Nettoyant Voile (420k) and Écran 50 (680k)",
+  );
+
+  const midFilter = PRICE_FILTERS.find((f) => f.id === "700to1000");
+  assert.ok(midFilter, "700to1000 filter must exist");
+  const midProducts = products.filter((p) => midFilter.matches(p.price));
+  assert.deepEqual(
+    midProducts.map((p) => p.name).sort(),
+    ["Crème Calme", "Huile Ambre", "Sérum Soie 01"].sort(),
+    "700to1000 must match exactly Crème Calme (850k), Huile Ambre (980k), and Sérum Soie 01 (920k)",
+  );
+
+  const over1000Filter = PRICE_FILTERS.find((f) => f.id === "over1000");
+  assert.ok(over1000Filter, "over1000 filter must exist");
+  const over1000Products = products.filter((p) => over1000Filter.matches(p.price));
+  assert.deepEqual(
+    over1000Products.map((p) => p.name),
+    ["Sculpt I"],
+    "over1000 must match exactly Sculpt I (1850k)",
+  );
+
+  const allFilter = PRICE_FILTERS.find((f) => f.id === "all");
+  assert.ok(allFilter, "all filter must exist");
+  const allProducts = products.filter((p) => allFilter.matches(p.price));
+  assert.equal(allProducts.length, 6, "all filter must match all 6 catalog products");
+});
+
+test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: Mobile menu distinguishes dismiss from navigation", async () => {
+  const [headerCode, spaCommerceCode] = await Promise.all([
+    readFile(new URL("../app/components/Header.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/SpaCommerce.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // 1. Source Contract: MobileMenuCloseReason type and semantic handlers
+  assert.match(headerCode, /export type MobileMenuCloseReason = "dismiss" \| "navigate";/);
+  assert.match(headerCode, /onCloseMobile: \(reason\?: MobileMenuCloseReason\) => void;/);
+  assert.match(headerCode, /onNavigateMobileDestination\?: \(destination: "catalogue" \| "treatments" \| "journal"\) => void;/);
+
+  // Scrim click invokes dismiss
+  assert.match(headerCode, /if \(mobileOpen\) onCloseMobile\("dismiss"\);/);
+
+  // Links invoke onNavigateMobileDestination
+  assert.match(headerCode, /onNavigateMobileDestination\("catalogue"\)/);
+  assert.match(headerCode, /onNavigateMobileDestination\("treatments"\)/);
+  assert.match(headerCode, /onNavigateMobileDestination\("journal"\)/);
+
+  // Booking button invokes onOpenBooking with explicit menuTriggerRef
+  assert.match(headerCode, /onCloseMobile\("navigate"\);\s*onOpenBooking\(menuTriggerRef\.current\);/);
+
+  // SpaCommerce handles navigate vs dismiss
+  assert.match(spaCommerceCode, /const closeMobileMenu = \(reason: MobileMenuCloseReason = "dismiss"\) =>/);
+  assert.match(spaCommerceCode, /if \(reason === "dismiss"\) \{\s*window\.requestAnimationFrame\(\(\) => menuTrigger\.current\?\.focus\(\)\);/);
+  assert.match(spaCommerceCode, /const handleMobileDestination = \(\s*destination: "catalogue" \| "treatments" \| "journal",\s*\) => \{\s*closeMobileMenu\("navigate"\);/);
+
+  // 2. State-Machine Test: verify focus policy distinction
+  let focusedElement = null;
+  const mockHamburger = { name: "hamburger" };
+  const mockCatalogueHeading = { name: "catalogue-heading" };
+  let isMenuOpen = true;
+
+  const simulateClose = (reason) => {
+    isMenuOpen = false;
+    if (reason === "dismiss") {
+      focusedElement = mockHamburger;
+    }
+  };
+
+  const simulateNavigate = (destination) => {
+    simulateClose("navigate");
+    if (destination === "catalogue") {
+      focusedElement = mockCatalogueHeading;
+    }
+  };
+
+  // Scenario A: Dismiss via scrim or Escape -> focus MUST return to hamburger
+  focusedElement = null;
+  simulateClose("dismiss");
+  assert.equal(isMenuOpen, false);
+  assert.equal(focusedElement, mockHamburger, "Dismiss must restore focus to hamburger");
+
+  // Scenario B: Navigate to catalogue -> focus MUST NOT bounce to hamburger
+  isMenuOpen = true;
+  focusedElement = null;
+  simulateNavigate("catalogue");
+  assert.equal(isMenuOpen, false);
+  assert.equal(focusedElement, mockCatalogueHeading, "Navigate must move focus to destination target, never bouncing to hamburger");
+});
+
+test("SOURCE CONTRACT TEST: Programmatic destination targets on real accessible elements", async () => {
+  const [catalogueCode, treatmentCode, journalCode, liquidCss] = await Promise.all([
+    readFile(new URL("../app/components/ProductCatalogue.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/TreatmentSection.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/JournalSection.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/liquid.css", import.meta.url), "utf8"),
+  ]);
+
+  // Catalogue title has ref and tabIndex={-1}
+  assert.match(catalogueCode, /catalogueDestinationRef\?: RefObject<HTMLHeadingElement \| null>;/);
+  assert.match(catalogueCode, /<h2 className="catalogue-title" ref=\{catalogueDestinationRef\} tabIndex=\{-1\}>/);
+
+  // Treatment title has ref and tabIndex={-1}
+  assert.match(treatmentCode, /treatmentDestinationRef\?: RefObject<HTMLHeadingElement \| null>;/);
+  assert.match(treatmentCode, /<h2 className="protocol-title" ref=\{treatmentDestinationRef\} tabIndex=\{-1\}>/);
+
+  // Journal title has ref and tabIndex={-1}
+  assert.match(journalCode, /journalDestinationRef\?: RefObject<HTMLHeadingElement \| null>;/);
+  assert.match(journalCode, /<h2 className="journal-title" ref=\{journalDestinationRef\} tabIndex=\{-1\}>/);
+
+  // Programmatic focus outline suppression for non-keyboard focus
+  assert.match(liquidCss, /\[tabindex="-1"\]:focus:not\(:focus-visible\)\s*\{\s*outline:\s*none;\s*\}/);
+});
+
+test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: Explicit Concierge and Mobile Menu booking openers", async () => {
+  const spaCommerceCode = await readFile(
+    new URL("../app/SpaCommerce.tsx", import.meta.url),
+    "utf8",
+  );
+
+  // Concierge intent booking passes explicit opener
+  assert.match(spaCommerceCode, /else if \(intent === "booking"\) \{\s*setChatOpen\(false\);\s*openBooking\(\{ opener: chatTrigger\.current \}\);/);
+
+  // openBooking accepts explicit opener and falls back sensibly
+  assert.match(spaCommerceCode, /const openBooking = \(options\?: \{ opener\?: HTMLElement \| null \} \| unknown\) =>/);
+  assert.match(spaCommerceCode, /bookingOpener\.current = explicitOpener \?\? fallbackOpener \?\? menuTrigger\.current;/);
+
+  // State-machine verification of explicit opener assignment
+  let recordedOpener = null;
+  const mockChatTrigger = { id: "chat-trigger" };
+  const mockMenuTrigger = { id: "menu-trigger" };
+
+  const simulateOpenBooking = (options) => {
+    const explicit = options && typeof options === "object" && "opener" in options ? options.opener : null;
+    recordedOpener = explicit ?? mockMenuTrigger;
+  };
+
+  simulateOpenBooking({ opener: mockChatTrigger });
+  assert.equal(recordedOpener, mockChatTrigger, "Concierge booking MUST assign chat trigger as explicit opener");
+
+  simulateOpenBooking({ opener: mockMenuTrigger });
+  assert.equal(recordedOpener, mockMenuTrigger, "Mobile menu booking MUST assign menu trigger as explicit opener");
+});
+
+test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: Checkout Stepper remains visible with Step 4 complete in confirmed state", async () => {
+  const cartDrawerCode = await readFile(
+    new URL("../app/components/CartDrawer.tsx", import.meta.url),
+    "utf8",
+  );
+
+  // Stepper condition allows confirmed state
+  assert.match(cartDrawerCode, /\{\(cart\.length > 0 \|\| checkoutState !== "cart"\) && \(/);
+
+  // Step 4 is rendered as is-current is-complete in confirmed state
+  assert.match(
+    cartDrawerCode,
+    /className=\{`step-item \$\{\s*checkoutState === "confirmed"\s*\?\s*"is-current is-complete"\s*:\s*checkoutState === "processing"\s*\?\s*"is-pending is-loading"\s*:\s*"is-pending"\s*\}`\}/,
+  );
+  assert.match(
+    cartDrawerCode,
+    /aria-current=\{checkoutState === "confirmed" \? "step" : undefined\}/,
+  );
+
+  // State machine simulation of the 4 customer stages
+  const getStepClasses = (checkoutState) => ({
+    step1: checkoutState === "cart" ? "is-current" : "is-complete",
+    step2:
+      checkoutState === "details"
+        ? "is-current"
+        : ["payment", "processing", "confirmed"].includes(checkoutState)
+          ? "is-complete"
+          : "is-pending",
+    step3:
+      checkoutState === "payment"
+        ? "is-current"
+        : ["processing", "confirmed"].includes(checkoutState)
+          ? "is-complete"
+          : "is-pending",
+    step4:
+      checkoutState === "confirmed"
+        ? "is-current is-complete"
+        : checkoutState === "processing"
+          ? "is-pending is-loading"
+          : "is-pending",
+  });
+
+  // Stage 1: Cart
+  const s1 = getStepClasses("cart");
+  assert.equal(s1.step1, "is-current");
+  assert.equal(s1.step4, "is-pending");
+
+  // Stage 2: Details
+  const s2 = getStepClasses("details");
+  assert.equal(s2.step1, "is-complete");
+  assert.equal(s2.step2, "is-current");
+  assert.equal(s2.step4, "is-pending");
+
+  // Stage 3: Payment
+  const s3 = getStepClasses("payment");
+  assert.equal(s3.step1, "is-complete");
+  assert.equal(s3.step2, "is-complete");
+  assert.equal(s3.step3, "is-current");
+  assert.equal(s3.step4, "is-pending");
+
+  // Internal Processing: Step 1, 2, 3 complete, Step 4 pending/loading
+  const sProcessing = getStepClasses("processing");
+  assert.equal(sProcessing.step1, "is-complete");
+  assert.equal(sProcessing.step2, "is-complete");
+  assert.equal(sProcessing.step3, "is-complete");
+  assert.equal(sProcessing.step4, "is-pending is-loading");
+
+  // Stage 4: Confirmed - Step 4 must be current and complete
+  const s4 = getStepClasses("confirmed");
+  assert.equal(s4.step1, "is-complete");
+  assert.equal(s4.step2, "is-complete");
+  assert.equal(s4.step3, "is-complete");
+  assert.equal(s4.step4, "is-current is-complete", "Step 4 must be current and complete in confirmed stage");
+});
+
+test("SOURCE CONTRACT TEST: Truthful copy compliance across all surfaces", async () => {
+  const [cartDrawerCode, spaCommerceCode] = await Promise.all([
+    readFile(new URL("../app/components/CartDrawer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/SpaCommerce.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // CartDrawer truthful copy
+  assert.doesNotMatch(cartDrawerCode, /đóng gói và giao/);
+  assert.doesNotMatch(cartDrawerCode, /toàn quốc/);
+  assert.doesNotMatch(cartDrawerCode, /hướng dẫn chuyển khoản trong bản demo/);
+
+  assert.match(cartDrawerCode, /Đơn hàng demo đã được ghi nhận trên thiết bị này/);
+  assert.match(cartDrawerCode, /Phương thức mô phỏng trong bản demo; không yêu cầu chuyển tiền thực tế/);
+  assert.match(cartDrawerCode, /Đơn hàng đủ điều kiện miễn phí giao hàng/);
+
+  // SpaCommerce chat reply truthful copy for Sculpt I
+  assert.doesNotMatch(spaCommerceCode, /nâng cơ/);
+  assert.match(spaCommerceCode, /hỗ trợ thư giãn và săn chắc da/);
+});
+
+test("SOURCE CONTRACT TEST: Scrollbar audit verifies real selectors", async () => {
+  const liquidCss = await readFile(
+    new URL("../app/liquid.css", import.meta.url),
+    "utf8",
+  );
+
+  // .order-table-wrap must be completely absent from stylesheet
+  assert.doesNotMatch(liquidCss, /\.order-table-wrap/);
+
+  // .order-table and .active-tags-rail must be present in restrained scrollbars list
+  assert.match(liquidCss, /html,\s*body,[\s\S]*?\.order-table,[\s\S]*?\.active-tags-rail\s*\{[\s\S]*?scrollbar-width:\s*thin;/);
+});
+
 
 

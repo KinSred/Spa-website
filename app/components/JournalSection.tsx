@@ -1,9 +1,14 @@
 "use client";
 
 import { BookOpen, Clock } from "lucide-react";
+import { RefObject } from "react";
 import { articles } from "../data";
 
-export function JournalSection() {
+type JournalSectionProps = {
+  journalDestinationRef?: RefObject<HTMLHeadingElement | null>;
+};
+
+export function JournalSection({ journalDestinationRef }: JournalSectionProps = {}) {
   const leadArticle = articles[0];
   const sideArticles = articles.slice(1);
 
@@ -16,7 +21,9 @@ export function JournalSection() {
           <span className="journal-roman">V · MONOGRAPH & ATELIER ESSAYS</span>
         </div>
         <div className="journal-head-title-row">
-          <h2 className="journal-title">Góc nhìn về làn da tự phục hồi.</h2>
+          <h2 className="journal-title" ref={journalDestinationRef} tabIndex={-1}>
+            Góc nhìn về làn da tự phục hồi.
+          </h2>
           <p className="journal-intro">
             Những ghi chép thực tế từ đội ngũ chuyên viên TĨNH về thói quen dưỡng
             da tối giản và chăm sóc màng ẩm tự nhiên.

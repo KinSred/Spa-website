@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { products, services, type Product } from "./data";
+import {
+  getPriceFilter,
+  products,
+  services,
+  type PriceFilterId,
+  type Product,
+} from "./data";
 import {
   commerceStorageKeys,
   createCommerceId,
@@ -9,7 +15,7 @@ import {
   prependCommerceOrder,
 } from "./commerce-storage";
 import { getLocalTodayDateString } from "./date-utils";
-import { Header } from "./components/Header";
+import { Header, type MobileMenuCloseReason } from "./components/Header";
 import { Hero } from "./components/Hero";
 import { ContinuitySection } from "./components/ContinuitySection";
 import { ProductCatalogue } from "./components/ProductCatalogue";
@@ -45,7 +51,7 @@ export default function SpaCommerce() {
   const [catalogProducts, setCatalogProducts] = useState<Product[]>(products);
   const [skin, setSkin] = useState("Tất cả");
   const [concern, setConcern] = useState("Tất cả nhu cầu");
-  const [price, setPrice] = useState("all");
+  const [price, setPrice] = useState<PriceFilterId>("all");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartHydrated, setCartHydrated] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -87,6 +93,9 @@ export default function SpaCommerce() {
   const bookingDialog = useRef<HTMLDialogElement>(null);
   const bookingInitialFocusRef = useRef<HTMLButtonElement>(null);
   const bookingOpener = useRef<HTMLElement | null>(null);
+  const catalogueDestinationRef = useRef<HTMLHeadingElement>(null);
+  const treatmentDestinationRef = useRef<HTMLHeadingElement>(null);
+  const journalDestinationRef = useRef<HTMLHeadingElement>(null);
   const navSentinel = useRef<HTMLSpanElement>(null);
   const cartTrigger = useRef<HTMLButtonElement>(null);
   const wordmark = useRef<HTMLAnchorElement>(null);
@@ -233,6 +242,13 @@ export default function SpaCommerce() {
     return () => desktop.removeEventListener("change", resetNavigation);
   }, []);
 
+  const closeMobileMenu = (reason: MobileMenuCloseReason = "dismiss") => {
+    setMobileOpen(false);
+    if (reason === "dismiss") {
+      window.requestAnimationFrame(() => menuTrigger.current?.focus());
+    }
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -240,8 +256,7 @@ export default function SpaCommerce() {
         setCartOpen(false);
         cartTrigger.current?.focus();
       } else if (mobileOpen) {
-        setMobileOpen(false);
-        menuTrigger.current?.focus();
+        closeMobileMenu("dismiss");
       } else if (megaOpen) {
         setMegaOpen(false);
         megaTrigger.current?.focus();
@@ -285,13 +300,7 @@ export default function SpaCommerce() {
       const matchesSkin = skin === "Tất cả" || product.skin.includes(skin);
       const matchesConcern =
         concern === "Tất cả nhu cầu" || product.concern.includes(concern);
-      const matchesPrice =
-        price === "all" ||
-        (price === "under-800" && product.price < 800000) ||
-        (price === "800-1500" &&
-          product.price >= 800000 &&
-          product.price <= 1500000) ||
-        (price === "above-1500" && product.price > 1500000);
+      const matchesPrice = getPriceFilter(price).matches(product.price);
 
       return matchesSearch && matchesSkin && matchesConcern && matchesPrice;
     });
@@ -340,9 +349,27 @@ export default function SpaCommerce() {
     setMobileOpen(next);
   };
 
-  const closeMobileMenu = () => {
-    setMobileOpen(false);
-    window.requestAnimationFrame(() => menuTrigger.current?.focus());
+
+  const handleMobileDestination = (
+    destination: "catalogue" | "treatments" | "journal",
+  ) => {
+    closeMobileMenu("navigate");
+    if (destination === "catalogue") {
+      document.getElementById("catalogue")?.scrollIntoView({ behavior: "smooth" });
+      window.requestAnimationFrame(() => {
+        catalogueDestinationRef.current?.focus({ preventScroll: true });
+      });
+    } else if (destination === "treatments") {
+      document.getElementById("treatments")?.scrollIntoView({ behavior: "smooth" });
+      window.requestAnimationFrame(() => {
+        treatmentDestinationRef.current?.focus({ preventScroll: true });
+      });
+    } else if (destination === "journal") {
+      document.getElementById("journal")?.scrollIntoView({ behavior: "smooth" });
+      window.requestAnimationFrame(() => {
+        journalDestinationRef.current?.focus({ preventScroll: true });
+      });
+    }
   };
 
   const toggleChat = () => {
@@ -497,13 +524,23 @@ export default function SpaCommerce() {
     }, 760);
   };
 
-  const openBooking = () => {
-    const active = document.activeElement as HTMLElement;
-    bookingOpener.current = active?.closest?.(".mobile-menu")
+  const openBooking = (options?: { opener?: HTMLElement | null } | unknown) => {
+    const explicitOpener =
+      options && typeof options === "object" && "opener" in options
+        ? (options as { opener?: HTMLElement | null }).opener
+        : options instanceof HTMLElement
+          ? options
+          : null;
+    const active = document.activeElement as HTMLElement | null;
+    const fallbackOpener = active?.closest?.(".mobile-menu")
       ? menuTrigger.current
       : active?.closest?.(".mega-panel")
         ? megaTrigger.current
-        : active;
+        : active?.closest?.(".chat-panel")
+          ? chatTrigger.current
+          : active;
+
+    bookingOpener.current = explicitOpener ?? fallbackOpener ?? menuTrigger.current;
     closeCommerceSurfaces();
     setBookingState("idle");
     setBookingReference(null);
@@ -553,20 +590,26 @@ export default function SpaCommerce() {
     if (intent === "sensitive-routine") {
       setSkin("Da nhạy cảm");
       if (isMobile) setChatOpen(false);
-      const el = document.getElementById("catalogue");
-      el?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById("catalogue")?.scrollIntoView({ behavior: "smooth" });
+      window.requestAnimationFrame(() => {
+        catalogueDestinationRef.current?.focus({ preventScroll: true });
+      });
     } else if (intent === "recovery-products") {
       setConcern("Phục hồi");
       if (isMobile) setChatOpen(false);
-      const el = document.getElementById("catalogue");
-      el?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById("catalogue")?.scrollIntoView({ behavior: "smooth" });
+      window.requestAnimationFrame(() => {
+        catalogueDestinationRef.current?.focus({ preventScroll: true });
+      });
     } else if (intent === "treatments") {
       if (isMobile) setChatOpen(false);
-      const el = document.getElementById("treatments");
-      el?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById("treatments")?.scrollIntoView({ behavior: "smooth" });
+      window.requestAnimationFrame(() => {
+        treatmentDestinationRef.current?.focus({ preventScroll: true });
+      });
     } else if (intent === "booking") {
       setChatOpen(false);
-      openBooking();
+      openBooking({ opener: chatTrigger.current });
     }
   };
 
@@ -607,7 +650,7 @@ export default function SpaCommerce() {
       text.includes("sculpt") ||
       text.includes("săn chắc")
     ) {
-      return "Thiết bị massage mặt Sculpt I có 3 mức sóng ấm và đầu hợp kim y tế, hỗ trợ nâng cơ và thư giãn cơ mặt khi kết hợp cùng serum trượt.";
+      return "Thiết bị massage mặt Sculpt I có 3 mức nhiệt và đầu hợp kim y tế, hỗ trợ thư giãn và săn chắc da trong chu trình chăm sóc tại nhà khi kết hợp cùng serum trượt.";
     }
     if (
       text.includes("liệu trình") ||
@@ -710,6 +753,7 @@ export default function SpaCommerce() {
         mobileOpen={mobileOpen}
         onToggleMobile={toggleMobileMenu}
         onCloseMobile={closeMobileMenu}
+        onNavigateMobileDestination={handleMobileDestination}
         menuTriggerRef={menuTrigger}
       />
 
@@ -719,6 +763,7 @@ export default function SpaCommerce() {
         <ContinuitySection />
 
         <ProductCatalogue
+          catalogueDestinationRef={catalogueDestinationRef}
           products={filteredProducts}
           query={query}
           onQueryChange={setQuery}
@@ -741,12 +786,13 @@ export default function SpaCommerce() {
         />
 
         <TreatmentSection
+          treatmentDestinationRef={treatmentDestinationRef}
           selectedServiceId={selectedServiceId}
           onSelectService={setSelectedServiceId}
           onChooseServiceAndBook={chooseServiceAndBook}
         />
 
-        <JournalSection />
+        <JournalSection journalDestinationRef={journalDestinationRef} />
       </main>
 
       <Footer mobileOpen={mobileOpen} onOpenBooking={openBooking} />

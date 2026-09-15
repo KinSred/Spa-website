@@ -2,15 +2,18 @@
 
 import Image from "next/image";
 import { ArrowRight, Calendar, Check, Clock, Sparkles } from "lucide-react";
+import { RefObject } from "react";
 import { formatMoney, services } from "../data";
 
 type TreatmentSectionProps = {
+  treatmentDestinationRef?: RefObject<HTMLHeadingElement | null>;
   selectedServiceId: string;
   onSelectService: (id: string) => void;
   onChooseServiceAndBook: (id: string) => void;
 };
 
 export function TreatmentSection({
+  treatmentDestinationRef,
   selectedServiceId,
   onSelectService,
   onChooseServiceAndBook,
@@ -28,7 +31,7 @@ export function TreatmentSection({
             <span className="protocol-roman">IV · CABINE PROTOCOLS</span>
           </div>
 
-          <h2 className="protocol-title">
+          <h2 className="protocol-title" ref={treatmentDestinationRef} tabIndex={-1}>
             Đặt một buổi, mang về một kế hoạch.
           </h2>
 

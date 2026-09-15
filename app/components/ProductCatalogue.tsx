@@ -4,10 +4,18 @@ import { RefObject, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Check, Plus, RotateCcw, Search, Sparkles, X } from "lucide-react";
-import { formatMoney, type Product } from "../data";
+import {
+  formatMoney,
+  getPriceFilter,
+  isPriceFilterId,
+  PRICE_FILTERS,
+  type PriceFilterId,
+  type Product,
+} from "../data";
 import { ProductCard } from "./ProductCard";
 
 type ProductCatalogueProps = {
+  catalogueDestinationRef?: RefObject<HTMLHeadingElement | null>;
   products: Product[];
   query: string;
   onQueryChange: (query: string) => void;
@@ -19,8 +27,8 @@ type ProductCatalogueProps = {
   onConcernChange: (concern: string) => void;
   concernSelectRef: RefObject<HTMLSelectElement | null>;
   concernOptions: string[];
-  price: string;
-  onPriceChange: (price: string) => void;
+  price: PriceFilterId;
+  onPriceChange: (price: PriceFilterId) => void;
   priceSelectRef: RefObject<HTMLSelectElement | null>;
   hasActiveFilters: boolean;
   onResetFilters: () => void;
@@ -30,6 +38,7 @@ type ProductCatalogueProps = {
 };
 
 export function ProductCatalogue({
+  catalogueDestinationRef,
   products,
   query,
   onQueryChange,
@@ -76,7 +85,9 @@ export function ProductCatalogue({
             <span className="catalogue-badge">BỘ SƯU TẬP TẠI NHÀ</span>
             <span className="catalogue-roman">III · FORMULATIONS</span>
           </div>
-          <h2 className="catalogue-title">Chọn theo làn da hôm nay.</h2>
+          <h2 className="catalogue-title" ref={catalogueDestinationRef} tabIndex={-1}>
+            Chọn theo làn da hôm nay.
+          </h2>
           <p className="catalogue-subtitle">
             Mỹ phẩm và thiết bị được chọn theo tình trạng da, nhu cầu và ngân sách.
           </p>
@@ -141,12 +152,18 @@ export function ProductCatalogue({
               <select
                 ref={priceSelectRef}
                 value={price}
-                onChange={(e) => onPriceChange(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (isPriceFilterId(val)) {
+                    onPriceChange(val);
+                  }
+                }}
               >
-                <option value="all">Mọi mức giá</option>
-                <option value="under700">Dưới 700.000 ₫</option>
-                <option value="700to1000">700.000–1.000.000 ₫</option>
-                <option value="over1000">Trên 1.000.000 ₫</option>
+                {PRICE_FILTERS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -216,13 +233,7 @@ export function ProductCatalogue({
                 returnFilterFocus(priceSelectRef.current);
               }}
             >
-              <span>
-                {price === "under700"
-                  ? "Dưới 700.000 ₫"
-                  : price === "700to1000"
-                    ? "700.000–1.000.000 ₫"
-                    : "Trên 1.000.000 ₫"}
-              </span>
+              <span>{getPriceFilter(price).tagLabel}</span>
               <X size={14} aria-hidden="true" />
             </button>
           )}

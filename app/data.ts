@@ -164,3 +164,49 @@ export const formatMoney = (value: number) =>
     currency: "VND",
     maximumFractionDigits: 0,
   }).format(value);
+
+export type PriceFilterId = "all" | "under700" | "700to1000" | "over1000";
+
+export type PriceFilterOption = {
+  readonly id: PriceFilterId;
+  readonly label: string;
+  readonly tagLabel: string;
+  readonly matches: (price: number) => boolean;
+};
+
+export const PRICE_FILTERS: readonly PriceFilterOption[] = [
+  {
+    id: "all",
+    label: "Mọi mức giá",
+    tagLabel: "Mọi mức giá",
+    matches: () => true,
+  },
+  {
+    id: "under700",
+    label: "Dưới 700.000 ₫",
+    tagLabel: "Dưới 700.000 ₫",
+    matches: (price: number) => price < 700000,
+  },
+  {
+    id: "700to1000",
+    label: "700.000–1.000.000 ₫",
+    tagLabel: "700.000–1.000.000 ₫",
+    matches: (price: number) => price >= 700000 && price <= 1000000,
+  },
+  {
+    id: "over1000",
+    label: "Trên 1.000.000 ₫",
+    tagLabel: "Trên 1.000.000 ₫",
+    matches: (price: number) => price > 1000000,
+  },
+] as const;
+
+export function isPriceFilterId(value: unknown): value is PriceFilterId {
+  return typeof value === "string" && PRICE_FILTERS.some((filter) => filter.id === value);
+}
+
+export function getPriceFilter(id: PriceFilterId): PriceFilterOption {
+  const found = PRICE_FILTERS.find((filter) => filter.id === id);
+  return found ?? PRICE_FILTERS[0];
+}
+

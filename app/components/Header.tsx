@@ -8,7 +8,9 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
-import { RefObject, useRef } from "react";
+import { RefObject, useEffect, useRef } from "react";
+
+export type MobileMenuCloseReason = "dismiss" | "navigate";
 
 type HeaderProps = {
   announcementVisible: boolean;
@@ -24,7 +26,7 @@ type HeaderProps = {
   megaTriggerRef: RefObject<HTMLButtonElement | null>;
   onFilterSkin: (skin: string) => void;
   onFilterConcern: (concern: string) => void;
-  onOpenBooking: () => void;
+  onOpenBooking: (explicitOpener?: HTMLElement | null) => void;
   cartCount: number;
   cartOpen: boolean;
   cartTriggerRef: RefObject<HTMLButtonElement | null>;
@@ -32,7 +34,8 @@ type HeaderProps = {
   bagPulse: boolean;
   mobileOpen: boolean;
   onToggleMobile: () => void;
-  onCloseMobile: () => void;
+  onCloseMobile: (reason?: MobileMenuCloseReason) => void;
+  onNavigateMobileDestination?: (destination: "catalogue" | "treatments" | "journal") => void;
   menuTriggerRef: RefObject<HTMLButtonElement | null>;
 };
 
@@ -59,9 +62,21 @@ export function Header({
   mobileOpen,
   onToggleMobile,
   onCloseMobile,
+  onNavigateMobileDestination,
   menuTriggerRef,
 }: HeaderProps) {
   const mobileMenuRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      window.requestAnimationFrame(() => {
+        const firstFocusable = mobileMenuRef.current?.querySelector<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        firstFocusable?.focus();
+      });
+    }
+  }, [mobileOpen]);
 
   const trapMobileMenuFocus = (event: React.KeyboardEvent<HTMLElement>) => {
     if (!mobileOpen || event.key !== "Tab") return;
@@ -161,7 +176,7 @@ export function Header({
               <button
                 className="book-link desktop-book"
                 type="button"
-                onClick={onOpenBooking}
+                onClick={() => onOpenBooking()}
               >
                 Đặt lịch
               </button>
@@ -274,20 +289,50 @@ export function Header({
             inert={!mobileOpen}
             onKeyDown={trapMobileMenuFocus}
           >
-            <a href="#catalogue" onClick={onCloseMobile}>
+            <a
+              href="#catalogue"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigateMobileDestination) {
+                  onNavigateMobileDestination("catalogue");
+                } else {
+                  onCloseMobile("navigate");
+                }
+              }}
+            >
               Sản phẩm
             </a>
-            <a href="#treatments" onClick={onCloseMobile}>
+            <a
+              href="#treatments"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigateMobileDestination) {
+                  onNavigateMobileDestination("treatments");
+                } else {
+                  onCloseMobile("navigate");
+                }
+              }}
+            >
               Liệu trình
             </a>
-            <a href="#journal" onClick={onCloseMobile}>
+            <a
+              href="#journal"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigateMobileDestination) {
+                  onNavigateMobileDestination("journal");
+                } else {
+                  onCloseMobile("navigate");
+                }
+              }}
+            >
               Kiến thức
             </a>
             <button
               type="button"
               onClick={() => {
-                onCloseMobile();
-                onOpenBooking();
+                onCloseMobile("navigate");
+                onOpenBooking(menuTriggerRef.current);
               }}
             >
               Đặt lịch tư vấn
@@ -303,7 +348,7 @@ export function Header({
         aria-hidden={!megaOpen && !mobileOpen}
         inert={!megaOpen && !mobileOpen}
         onClick={() => {
-          if (mobileOpen) onCloseMobile();
+          if (mobileOpen) onCloseMobile("dismiss");
           else onCloseMega();
         }}
       />
