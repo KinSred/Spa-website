@@ -13,10 +13,10 @@ export function Hero({ onOpenBooking }: HeroProps) {
       {/* Atelier Top Context Rail */}
       <div className="hero-top-rail">
         <div className="atelier-stamp">
-          <span>TĨNH SKIN ATELIER · TP. HỒ CHÍ MINH</span>
+          <span>TĨNH SKIN ATELIER</span>
         </div>
-        <span className="atelier-hours" aria-label="Giờ tiếp đón">
-          Giờ tiếp đón tư vấn: 09:00 – 20:00
+        <span className="atelier-hours">
+          Chăm sóc da &amp; Liệu trình chuyên sâu
         </span>
       </div>
 
@@ -34,9 +34,9 @@ export function Hero({ onOpenBooking }: HeroProps) {
           </h1>
 
           <p className="hero-lead">
-            Routine tại nhà và liệu trình tại atelier được đọc chung trong một hồ
-            sơ duy nhất. Mua đúng sản phẩm cho những ngày êm đềm; đặt đúng liệu
-            trình cho những khi làn da cần bàn tay trị liệu chuyên sâu.
+            Sự kết hợp hài hòa giữa chăm sóc tại nhà và liệu trình tại atelier.
+            Mua đúng sản phẩm cho chu trình hàng ngày; đặt đúng liệu trình cho
+            những khi làn da cần chăm sóc chuyên sâu.
           </p>
 
           {/* Dual Care Index Pathways */}

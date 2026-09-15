@@ -103,9 +103,9 @@ design.md                        Quy chuẩn thiết kế của dự án
 
 ## Ghi chú bàn giao
 
-- Dữ liệu mặc định của quản trị là trạng thái rỗng; các bản ghi xuất hiện sau
-  khi người dùng tạo đơn hoặc đặt lịch.
-- Danh mục sản phẩm hiện được định nghĩa trong `app/data.ts`.
+- Khu quản trị `/admin` hiện hoạt động như một demo / local operations console (`DEMO · LOCAL DATA`).
+- Cơ chế xác thực (Authentication), phiên đăng nhập (Session) và phân quyền vai trò (RBAC) **cố ý chưa triển khai** trong bản frontend này và thuộc phạm vi công việc backend/security tiếp theo.
+- Dữ liệu mặc định của quản trị là trạng thái rỗng; các bản ghi xuất hiện sau khi người dùng tạo đơn hoặc đặt lịch trên thiết bị này.
+- Danh mục sản phẩm hiện được định nghĩa chuẩn xác trong `app/data.ts`.
 - Mã giảm giá mẫu `TINH10` giảm 10% trong luồng checkout.
-- Ảnh, tên thương hiệu và nội dung sản phẩm trong repository được tạo cho dự
-  án portfolio này.
+- Ảnh, tên thương hiệu và nội dung sản phẩm trong repository được tạo cho dự án portfolio này.

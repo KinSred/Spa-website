@@ -446,3 +446,217 @@ test("Truthful content audit: fabricated claims and unsupported clinical guarant
   assert.doesNotMatch(productDetailCode, /Điều chế mẻ nhỏ bảo toàn hoạt tính/i, "ProductDetail must not fabricate small-batch activity preservation claims");
 });
 
+test("Truthful content sweep: Hero, Treatment, ProductDetail, Footer, and Navigation conform to canonical catalog", async () => {
+  const [heroCode, treatmentCode, productDetailCode, footerCode, headerCode] = await Promise.all([
+    readFile(new URL("../app/components/Hero.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/TreatmentSection.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/san-pham/[slug]/ProductDetail.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/Footer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/Header.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // 1. Hero: no unbacked location, operating hours, or technical dossier claims
+  assert.doesNotMatch(heroCode, /TP\.\s*HỒ\s*CHÍ\s*MINH/i, "Hero must not contain unbacked TP. HCM location");
+  assert.doesNotMatch(heroCode, /09:00\s*[–-]\s*20:00/, "Hero must not claim unbacked 09:00 - 20:00 operating hours");
+  assert.doesNotMatch(heroCode, /hồ\s*sơ\s*duy\s*nhất/i, "Hero must not promise unified technical customer dossier");
+  assert.match(heroCode, /Chăm da, không chia đôi\./);
+
+  // 2. Treatment: no efficacy duration claims or botanical lipid claims
+  assert.doesNotMatch(treatmentCode, /nhiều\s*tháng\s*tới/i, "Treatment must not claim multi-month recovery");
+  assert.doesNotMatch(treatmentCode, /mặt\s*nạ\s*lipid\s*thực\s*vật/i, "Treatment must not claim botanical lipid mask");
+
+  // 3. ProductDetail: truthful price label
+  assert.doesNotMatch(productDetailCode, /Giá niêm yết chính hãng/i, "ProductDetail must not use hyperbolic price label");
+  assert.match(productDetailCode, /<span className="price-lead-label">Giá<\/span>/);
+
+  // 4. Navigation & Footer: no admin links in customer surfaces
+  assert.doesNotMatch(headerCode, /href="\/admin"/, "Header must not link to /admin");
+  assert.doesNotMatch(footerCode, /href="\/admin"/, "Footer must not link to /admin");
+});
+
+test("Token hygiene: zero occurrences of --z-fixed and transition: all across all styles", async () => {
+  const [liquidCss, globalsCss, tokensCss] = await Promise.all([
+    readFile(new URL("../app/liquid.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../tokens.css", import.meta.url), "utf8"),
+  ]);
+
+  const allCss = `${liquidCss}\n${globalsCss}\n${tokensCss}`;
+
+  // Zero occurrences of z-fixed
+  assert.doesNotMatch(allCss, /--z-fixed\b/, "Must have zero occurrences of --z-fixed token definition");
+  assert.doesNotMatch(allCss, /var\(--z-fixed\)/, "Must have zero occurrences of var(--z-fixed)");
+
+  // Zero occurrences of transition: all or transition-all
+  assert.doesNotMatch(allCss, /transition:\s*all\b/i, "Must have zero occurrences of transition: all");
+  assert.doesNotMatch(allCss, /\btransition-all\b/, "Must have zero occurrences of transition-all utility");
+});
+
+test("Restrained TĨNH scrollbars and stable header scroll morph in liquid.css", async () => {
+  const liquidCss = await readFile(
+    new URL("../app/liquid.css", import.meta.url),
+    "utf8",
+  );
+
+  // Restrained scrollbars for WebKit and Firefox
+  assert.match(liquidCss, /scrollbar-width:\s*thin/);
+  assert.match(liquidCss, /scrollbar-color:\s*var\(--color-rule-2\)\s+transparent/);
+  assert.match(liquidCss, /::-webkit-scrollbar/);
+  assert.match(liquidCss, /::-webkit-scrollbar-thumb/);
+
+  // Stable header scroll morph: smooth announcement collapse without translateY on compact nav-inner
+  assert.match(liquidCss, /\.site-header\.is-compact \.announcement\s*\{[\s\S]*?max-height:\s*0/);
+  assert.match(liquidCss, /\.site-header\.is-compact \.announcement\s*\{[\s\S]*?opacity:\s*0/);
+  assert.match(liquidCss, /\.site-header\.is-compact \.nav-inner\s*\{[^{}]*background:\s*var\(--color-glass-strong\)/);
+  assert.doesNotMatch(liquidCss, /\.site-header\.is-compact \.nav-inner\s*\{[^{}]*transform:\s*translateY/);
+});
+
+test("Admin demo indicator: restrained DEMO · LOCAL DATA badge without alarmist warnings", async () => {
+  const [adminHeaderCode, adminSidebarCode] = await Promise.all([
+    readFile(new URL("../app/admin/components/AdminHeader.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/components/AdminSidebar.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // Header contains restrained demo tag
+  assert.match(adminHeaderCode, /DEMO · LOCAL DATA/);
+  assert.match(adminHeaderCode, /className="admin-demo-tag"/);
+
+  // Sidebar footer documents local demo storage
+  assert.match(adminSidebarCode, /Dữ liệu demo lưu cục bộ trên trình duyệt này/);
+
+  // No alarming production security red banner
+  assert.doesNotMatch(adminHeaderCode, /CẢNH BÁO NGUY HIỂM|KHÔNG AN TOÀN|SECURITY WARNING/i);
+});
+
+test("Checkout state machine: 5 explicit states and bidirectional CheckoutDraft persistence", async () => {
+  const [cartDrawerCode, spaCommerceCode] = await Promise.all([
+    readFile(new URL("../app/components/CartDrawer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/SpaCommerce.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // Types define 5 explicit checkout states
+  assert.match(cartDrawerCode, /export type CheckoutState =\s*\|?\s*"cart"\s*\|\s*"details"\s*\|\s*"payment"\s*\|\s*"processing"\s*\|\s*"confirmed"/);
+  assert.match(cartDrawerCode, /export type CheckoutDraft =/);
+
+  // Stepper markup reflects real CheckoutState
+  assert.match(cartDrawerCode, /className="checkout-stepper"/);
+  assert.match(cartDrawerCode, /checkoutState === "cart"/);
+  assert.match(cartDrawerCode, /checkoutState === "details"/);
+  assert.match(cartDrawerCode, /checkoutState === "payment"/);
+
+  // Parent-owned draft in SpaCommerce
+  assert.match(spaCommerceCode, /const \[checkoutDraft, setCheckoutDraft\] = useState<CheckoutDraft>/);
+  assert.match(spaCommerceCode, /const \[checkoutState, setCheckoutState\] = useState<CheckoutState>\("cart"\)/);
+
+  // State machine simulation: bidirectional navigation details -> payment -> details -> payment
+  let currentState = "cart";
+  let draft = {
+    name: "",
+    phone: "",
+    address: "",
+    note: "",
+    payment: "cod",
+  };
+
+  const updateDraft = (patch) => {
+    draft = { ...draft, ...patch };
+  };
+
+  const setState = (next) => {
+    currentState = next;
+  };
+
+  // Step 1: user opens cart and proceeds to details
+  setState("details");
+  assert.equal(currentState, "details");
+
+  // Step 2: user enters delivery details
+  updateDraft({
+    name: "Lê Minh Thảo",
+    phone: "0901234567",
+    address: "123 Đường Hoa Lan, Phường 2, Phú Nhuận",
+    note: "Giao giờ hành chính",
+  });
+
+  // Step 3: user proceeds to payment step
+  setState("payment");
+  assert.equal(currentState, "payment");
+  assert.equal(draft.name, "Lê Minh Thảo");
+  assert.equal(draft.phone, "0901234567");
+  assert.equal(draft.address, "123 Đường Hoa Lan, Phường 2, Phú Nhuận");
+  assert.equal(draft.payment, "cod");
+
+  // Step 4: user chooses bank transfer
+  updateDraft({ payment: "bank" });
+  assert.equal(draft.payment, "bank");
+
+  // Step 5: user clicks Back to details
+  setState("details");
+  assert.equal(currentState, "details");
+  // CRITICAL: Draft fields must remain intact without losing data!
+  assert.equal(draft.name, "Lê Minh Thảo");
+  assert.equal(draft.phone, "0901234567");
+  assert.equal(draft.address, "123 Đường Hoa Lan, Phường 2, Phú Nhuận");
+  assert.equal(draft.note, "Giao giờ hành chính");
+  assert.equal(draft.payment, "bank");
+
+  // Step 6: user updates phone number and advances back to payment
+  updateDraft({ phone: "0909888777" });
+  setState("payment");
+  assert.equal(currentState, "payment");
+  assert.equal(draft.phone, "0909888777");
+  assert.equal(draft.payment, "bank", "Payment choice must be preserved when returning to payment step");
+});
+
+test("Booking Studio: localized Vietnamese date utility and accessible dialog lifecycle", async () => {
+  const [bookingDialogCode, dateUtilsCode] = await Promise.all([
+    readFile(new URL("../app/components/BookingDialog.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/date-utils.ts", import.meta.url), "utf8"),
+  ]);
+
+  // Localized date utilities
+  assert.match(dateUtilsCode, /formatLocalDateToISO/);
+  assert.match(dateUtilsCode, /getLocalTodayDateString/);
+  assert.match(dateUtilsCode, /formatVietnameseDate/);
+  assert.match(dateUtilsCode, /formatVietnameseDateLong/);
+
+  // Hidden date input preserves name="date" with ISO value
+  assert.match(bookingDialogCode, /<input type="hidden" name="date" value=\{selectedDate\} \/>/);
+
+  // Service cards have accessible role, aria-pressed, and initial focus ref
+  assert.match(bookingDialogCode, /className=\{`booking-service-card \$\{isSelected \? "is-selected" : ""\}`\}/);
+  assert.match(bookingDialogCode, /aria-pressed=\{isSelected\}/);
+  assert.match(bookingDialogCode, /ref=\{index === 0 \? bookingInitialFocusRef : undefined\}/);
+
+  // Date strip renders localized display
+  assert.match(bookingDialogCode, /className="booking-date-strip"/);
+  assert.match(bookingDialogCode, /className=\{`date-chip/);
+
+  // Pre-submission summary strip
+  assert.match(bookingDialogCode, /className="booking-summary-strip"/);
+
+  // Dialog lifecycle preserved
+  assert.match(bookingDialogCode, /const requestClose = \(\) =>/);
+  assert.match(bookingDialogCode, /aria-label="Đóng biểu mẫu"/);
+});
+
+test("Presentational Concierge: quick intent pills and deterministic routing", async () => {
+  const [advisorChatCode, spaCommerceCode] = await Promise.all([
+    readFile(new URL("../app/components/AdvisorChat.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/SpaCommerce.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // Quick intent pills rendered
+  assert.match(advisorChatCode, /className="concierge-quick-strip"/);
+  assert.match(advisorChatCode, /className="quick-intent-pill"/);
+  assert.match(advisorChatCode, /Chọn routine cho da nhạy cảm/);
+  assert.match(advisorChatCode, /Tìm sản phẩm phục hồi/);
+  assert.match(advisorChatCode, /Xem liệu trình/);
+  assert.match(advisorChatCode, /Đặt lịch tư vấn/);
+
+  // Deterministic router handles intent
+  assert.match(spaCommerceCode, /const handleConciergeIntent = \(intent: ConciergeIntent\) =>/);
+  assert.match(spaCommerceCode, /const getDeterministicChatReply = \(input: string\): string =>/);
+});
+
+

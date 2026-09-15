@@ -158,9 +158,6 @@ export function Header({
             </nav>
 
             <div className="nav-actions">
-              <Link className="admin-link" href="/admin">
-                Quản trị
-              </Link>
               <button
                 className="book-link desktop-book"
                 type="button"
@@ -286,9 +283,6 @@ export function Header({
             <a href="#journal" onClick={onCloseMobile}>
               Kiến thức
             </a>
-            <Link href="/admin" onClick={onCloseMobile}>
-              Quản trị
-            </Link>
             <button
               type="button"
               onClick={() => {

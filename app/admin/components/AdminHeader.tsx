@@ -33,7 +33,10 @@ export function AdminHeader({
           <Menu size={20} aria-hidden="true" />
         </button>
         <div>
-          <span>TĨNH Spa Commerce</span>
+          <div className="admin-title-row">
+            <span>TĨNH Spa Commerce</span>
+            <span className="admin-demo-tag">DEMO · LOCAL DATA</span>
+          </div>
           <h1 id="admin-page-title" ref={pageTitleRef} tabIndex={-1}>
             {tabTitle}
           </h1>

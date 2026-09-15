@@ -54,7 +54,7 @@ export function ContinuitySection() {
           <h3 className="stage-heading">Chăm sóc phòng cabine</h3>
           <p className="stage-body">
             Khi da cần giải tỏa bít tắc hoặc hạ nhiệt sau đợt kích ứng, các
-            nghi thức làm mát, mặt nạ lipid thực vật và thao tác làm dịu nhẹ nhàng
+            nghi thức làm mát, mặt nạ lipid làm dịu và thao tác chăm sóc nhẹ nhàng
             tại atelier hỗ trợ củng cố màng ẩm tự nhiên.
           </p>
           <span className="stage-badge">Tại atelier cabine</span>

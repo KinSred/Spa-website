@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import {
+  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Banknote,
@@ -11,17 +11,26 @@ import {
   Minus,
   Plus,
   ShoppingBag,
+  Trash2,
   X,
 } from "lucide-react";
 import { FormEvent, RefObject } from "react";
 import { formatMoney, type Product } from "../data";
 
-type CartLine = {
+export type CartLine = {
   product: Product;
   quantity: number;
 };
 
-export type CheckoutState = "cart" | "details" | "processing" | "confirmed";
+export type CheckoutState = "cart" | "details" | "payment" | "processing" | "confirmed";
+
+export type CheckoutDraft = {
+  name: string;
+  phone: string;
+  address: string;
+  payment: "cod" | "bank";
+  note?: string;
+};
 
 type CartDrawerProps = {
   cartOpen: boolean;
@@ -29,6 +38,7 @@ type CartDrawerProps = {
   cartCloseRef: RefObject<HTMLButtonElement | null>;
   cart: CartLine[];
   onUpdateQuantity: (id: number, delta: number) => void;
+  onRemoveLine: (id: number) => void;
   coupon: string;
   onCouponChange: (coupon: string) => void;
   couponValid: boolean;
@@ -37,11 +47,15 @@ type CartDrawerProps = {
   discount: number;
   checkoutState: CheckoutState;
   onSetCheckoutState: (state: CheckoutState) => void;
+  checkoutDraft: CheckoutDraft;
+  onUpdateDraft: (updates: Partial<CheckoutDraft>) => void;
   onSubmitCheckout: (event: FormEvent<HTMLFormElement>) => void;
   lastOrderId: string | null;
   "aria-modal"?: boolean | "true" | "false";
   inert?: boolean;
 };
+
+const FREE_SHIPPING_THRESHOLD = 1200000;
 
 export function CartDrawer({
   cartOpen,
@@ -49,6 +63,7 @@ export function CartDrawer({
   cartCloseRef,
   cart,
   onUpdateQuantity,
+  onRemoveLine,
   coupon,
   onCouponChange,
   couponValid,
@@ -57,12 +72,16 @@ export function CartDrawer({
   discount,
   checkoutState,
   onSetCheckoutState,
+  checkoutDraft,
+  onUpdateDraft,
   onSubmitCheckout,
   lastOrderId,
   "aria-modal": ariaModal = "true",
   inert,
 }: CartDrawerProps) {
   const cartCount = cart.reduce((sum, line) => sum + line.quantity, 0);
+  const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shippingLabel = isFreeShipping ? "Miễn phí" : "Xác nhận khi xử lý đơn";
 
   const trapFocus = (event: React.KeyboardEvent<HTMLElement>) => {
     if (!cartOpen || event.key !== "Tab") return;
@@ -83,6 +102,14 @@ export function CartDrawer({
     }
   };
 
+  const handleDetailsProceed = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!checkoutDraft.name.trim() || !checkoutDraft.phone.trim() || !checkoutDraft.address.trim()) {
+      return;
+    }
+    onSetCheckoutState("payment");
+  };
+
   return (
     <>
       <aside
@@ -95,15 +122,19 @@ export function CartDrawer({
         inert={inert ?? !cartOpen}
         onKeyDown={trapFocus}
       >
-        <header>
+        <header className="cart-drawer-header">
           <div>
-            <span id="cart-title">Giỏ hàng</span>
-            <strong>
-              {checkoutState === "details" || checkoutState === "processing"
+            <span className="cart-kicker" id="cart-title">GIỎ HÀNG TĨNH</span>
+            <strong className="cart-header-status">
+              {checkoutState === "details"
                 ? "Thông tin nhận hàng"
-                : checkoutState === "confirmed"
-                  ? "Đơn hàng đã ghi nhận"
-                  : `${cartCount} sản phẩm`}
+                : checkoutState === "payment"
+                  ? "Phương thức thanh toán"
+                  : checkoutState === "processing"
+                    ? "Đang ghi nhận đơn"
+                    : checkoutState === "confirmed"
+                      ? "Đơn hàng hoàn tất"
+                      : `${cartCount} sản phẩm đã chọn`}
             </strong>
           </div>
           <button
@@ -117,53 +148,240 @@ export function CartDrawer({
           </button>
         </header>
 
+        {/* Real Customer Progression Stepper */}
+        {cart.length > 0 && checkoutState !== "confirmed" && (
+          <nav className="checkout-stepper" aria-label="Tiến trình đặt hàng">
+            <ol className="stepper-track">
+              <li
+                className={`step-item ${checkoutState === "cart" ? "is-current" : "is-complete"}`}
+                aria-current={checkoutState === "cart" ? "step" : undefined}
+              >
+                <span className="step-number">1</span>
+                <span className="step-name">Giỏ hàng</span>
+              </li>
+              <li
+                className={`step-item ${
+                  checkoutState === "details"
+                    ? "is-current"
+                    : checkoutState === "payment" || checkoutState === "processing"
+                      ? "is-complete"
+                      : "is-pending"
+                }`}
+                aria-current={checkoutState === "details" ? "step" : undefined}
+              >
+                <span className="step-number">2</span>
+                <span className="step-name">Nhận hàng</span>
+              </li>
+              <li
+                className={`step-item ${
+                  checkoutState === "payment"
+                    ? "is-current"
+                    : checkoutState === "processing"
+                      ? "is-complete"
+                      : "is-pending"
+                }`}
+                aria-current={checkoutState === "payment" ? "step" : undefined}
+              >
+                <span className="step-number">3</span>
+                <span className="step-name">Thanh toán</span>
+              </li>
+              <li className="step-item is-pending">
+                <span className="step-number">4</span>
+                <span className="step-name">Hoàn tất</span>
+              </li>
+            </ol>
+          </nav>
+        )}
+
         <div className={`cart-lines cart-state-${checkoutState}`}>
+          {/* STATE 5: CONFIRMED */}
           {checkoutState === "confirmed" ? (
             <div className="checkout-confirmation" role="status">
-              <span className="confirmation-mark">
-                <BadgeCheck size={28} aria-hidden="true" />
+              <span className="confirmation-mark" aria-hidden="true">
+                <BadgeCheck size={32} />
               </span>
-              <p>Đơn hàng đã được tạo</p>
-              <h3>{lastOrderId}</h3>
-              <span>
-                TĨNH đã lưu đơn vào khu quản trị. Nhân viên có thể tiếp tục xử lý
-                trạng thái giao hàng ngay trên dashboard.
-              </span>
+              <p className="confirmation-title">Đơn hàng đã được ghi nhận</p>
+              <h3 className="confirmation-id">{lastOrderId}</h3>
+
+              <div className="confirmation-dossier">
+                <div className="dossier-row">
+                  <span>Người nhận:</span>
+                  <strong>{checkoutDraft.name}</strong>
+                </div>
+                <div className="dossier-row">
+                  <span>Số điện thoại:</span>
+                  <span>{checkoutDraft.phone}</span>
+                </div>
+                <div className="dossier-row">
+                  <span>Địa chỉ giao:</span>
+                  <span>{checkoutDraft.address}</span>
+                </div>
+                <div className="dossier-row">
+                  <span>Hình thức:</span>
+                  <span>
+                    {checkoutDraft.payment === "bank"
+                      ? "Chuyển khoản (Demo)"
+                      : "Thanh toán khi nhận hàng (COD)"}
+                  </span>
+                </div>
+              </div>
+
+              <p className="confirmation-truth-note">
+                Đơn hàng đã được lưu lại an toàn trên thiết bị này. TĨNH sẽ đóng gói và
+                giao theo thông tin người nhận đã ghi.
+              </p>
+
               <div className="confirmation-actions">
-                <Link href="/admin?tab=orders">Xem trong quản trị</Link>
-                <button type="button" onClick={onCloseCart}>
+                <button
+                  type="button"
+                  className="continue-shopping-btn"
+                  onClick={onCloseCart}
+                >
                   Tiếp tục mua sắm
                 </button>
               </div>
             </div>
           ) : checkoutState === "processing" ? (
+            /* STATE 4: PROCESSING */
             <div className="checkout-processing" role="status" aria-live="polite">
-              <span aria-hidden="true" />
+              <span className="spinner-indicator" aria-hidden="true" />
               <h3>Đang ghi nhận đơn hàng</h3>
-              <p>Thông tin nhận hàng đang được lưu an toàn trên thiết bị này.</p>
+              <p>Thông tin nhận hàng đang được lưu trên thiết bị này…</p>
             </div>
-          ) : checkoutState === "details" ? (
-            <form className="checkout-form" onSubmit={onSubmitCheckout}>
-              <button
-                className="checkout-back"
-                type="button"
-                onClick={() => onSetCheckoutState("cart")}
-              >
-                <ArrowRight size={16} aria-hidden="true" />
-                Trở lại giỏ hàng
+          ) : checkoutState === "payment" ? (
+            /* STATE 3: PAYMENT METHOD */
+            <form className="checkout-form payment-step-form" onSubmit={onSubmitCheckout}>
+              <div className="step-nav-bar">
+                <button
+                  className="checkout-back"
+                  type="button"
+                  onClick={() => onSetCheckoutState("details")}
+                >
+                  <ArrowLeft size={16} aria-hidden="true" />
+                  Quay lại thông tin người nhận
+                </button>
+              </div>
+
+              {/* Recipient Summary Card */}
+              <div className="recipient-review-card">
+                <div className="review-header">
+                  <strong>Thông tin giao nhận</strong>
+                  <button
+                    type="button"
+                    className="edit-recipient-btn"
+                    onClick={() => onSetCheckoutState("details")}
+                  >
+                    Thay đổi
+                  </button>
+                </div>
+                <p className="recipient-line">
+                  <strong>{checkoutDraft.name}</strong> · {checkoutDraft.phone}
+                </p>
+                <p className="address-line">{checkoutDraft.address}</p>
+                {checkoutDraft.note && (
+                  <p className="note-line">Ghi chú: {checkoutDraft.note}</p>
+                )}
+              </div>
+
+              {/* Payment Selector */}
+              <fieldset className="payment-options">
+                <legend>Phương thức thanh toán</legend>
+                <label className={`payment-option ${checkoutDraft.payment === "cod" ? "is-active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="cod"
+                    checked={checkoutDraft.payment === "cod"}
+                    onChange={() => onUpdateDraft({ payment: "cod" })}
+                  />
+                  <Banknote size={20} aria-hidden="true" />
+                  <div className="option-copy">
+                    <strong>Khi nhận hàng (COD)</strong>
+                    <small>Kiểm tra bưu kiện và thanh toán tiền mặt trực tiếp cho bên giao nhận.</small>
+                  </div>
+                </label>
+
+                <label className={`payment-option ${checkoutDraft.payment === "bank" ? "is-active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="bank"
+                    checked={checkoutDraft.payment === "bank"}
+                    onChange={() => onUpdateDraft({ payment: "bank" })}
+                  />
+                  <CreditCard size={20} aria-hidden="true" />
+                  <div className="option-copy">
+                    <strong>Chuyển khoản ngân hàng (Mô phỏng)</strong>
+                    <small>Hệ thống ghi nhận đơn và hướng dẫn chuyển khoản trong bản demo.</small>
+                  </div>
+                </label>
+              </fieldset>
+
+              {/* Truthful Total Summary */}
+              <div className="checkout-payment-summary">
+                <dl className="summary-breakdown">
+                  <div>
+                    <dt>Tiền hàng</dt>
+                    <dd>{formatMoney(subtotal)}</dd>
+                  </div>
+                  {couponValid && (
+                    <div>
+                      <dt>Giảm giá (TINH10)</dt>
+                      <dd>-{formatMoney(discount)}</dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt>Vận chuyển</dt>
+                    <dd>{shippingLabel}</dd>
+                  </div>
+                  <div className="total-row">
+                    <dt>
+                      {isFreeShipping ? "Tổng thanh toán" : "Ước tính tiền hàng"}
+                    </dt>
+                    <dd>{formatMoney(subtotal - discount)}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <button className="checkout-button primary-action" type="submit">
+                Hoàn tất đặt hàng
+                <ArrowRight size={18} aria-hidden="true" />
               </button>
-              <label>
-                <span>Họ và tên</span>
+
+              <p className="checkout-security-notice">
+                <BadgeCheck size={16} aria-hidden="true" />
+                Đơn hàng được lưu trên trình duyệt trong phiên bản bàn giao này.
+              </p>
+            </form>
+          ) : checkoutState === "details" ? (
+            /* STATE 2: DETAILS */
+            <form className="checkout-form" onSubmit={handleDetailsProceed}>
+              <div className="step-nav-bar">
+                <button
+                  className="checkout-back"
+                  type="button"
+                  onClick={() => onSetCheckoutState("cart")}
+                >
+                  <ArrowLeft size={16} aria-hidden="true" />
+                  Trở lại danh sách sản phẩm
+                </button>
+              </div>
+
+              <label className="checkout-field">
+                <span>Họ và tên người nhận</span>
                 <input
                   name="name"
                   autoComplete="name"
                   required
+                  value={checkoutDraft.name}
+                  onChange={(e) => onUpdateDraft({ name: e.target.value })}
                   placeholder="Nguyễn An"
                 />
-                <small>Tên người nhận ghi trên đơn hàng.</small>
+                <small>Tên ghi trên kiện hàng.</small>
               </label>
-              <label>
-                <span>Số điện thoại</span>
+
+              <label className="checkout-field">
+                <span>Số điện thoại nhận hàng</span>
                 <input
                   name="phone"
                   type="tel"
@@ -171,114 +389,145 @@ export function CartDrawer({
                   inputMode="tel"
                   pattern="[0-9+\s]{9,14}"
                   required
+                  value={checkoutDraft.phone}
+                  onChange={(e) => onUpdateDraft({ phone: e.target.value })}
                   placeholder="090 123 4567"
                 />
-                <small>Dùng để xác nhận giao nhận.</small>
+                <small>Dùng để bên giao nhận liên hệ khi phát hàng.</small>
               </label>
-              <label>
+
+              <label className="checkout-field">
                 <span>Địa chỉ giao hàng</span>
                 <textarea
                   name="address"
                   autoComplete="street-address"
                   required
-                  placeholder="Số nhà, tên đường, phường/xã, tỉnh/thành"
+                  value={checkoutDraft.address}
+                  onChange={(e) => onUpdateDraft({ address: e.target.value })}
+                  placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành"
                 />
-                <small>Ghi đủ thông tin để đơn vị vận chuyển liên hệ.</small>
+                <small>Địa chỉ nhận kiện mỹ phẩm.</small>
               </label>
-              <fieldset className="payment-options">
-                <legend>Thanh toán</legend>
-                <label>
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="cod"
-                    defaultChecked
-                  />
-                  <Banknote size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Khi nhận hàng</strong>
-                    <small>Thanh toán trực tiếp cho đơn vị giao nhận.</small>
-                  </span>
-                </label>
-                <label>
-                  <input type="radio" name="payment" value="bank" />
-                  <CreditCard size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Chuyển khoản</strong>
-                    <small>TĨNH gửi thông tin sau khi xác nhận đơn.</small>
-                  </span>
-                </label>
-              </fieldset>
-              <div className="checkout-total">
-                <span>Tổng thanh toán</span>
-                <strong>{formatMoney(subtotal - discount)}</strong>
+
+              <label className="checkout-field">
+                <span>Ghi chú giao hàng (không bắt buộc)</span>
+                <input
+                  name="note"
+                  value={checkoutDraft.note ?? ""}
+                  onChange={(e) => onUpdateDraft({ note: e.target.value })}
+                  placeholder="Giao giờ hành chính, gọi trước khi đến…"
+                />
+              </label>
+
+              <div className="checkout-details-footer">
+                <button className="checkout-button primary-action" type="submit">
+                  Tiếp tục: Thanh toán
+                  <ArrowRight size={18} aria-hidden="true" />
+                </button>
               </div>
-              <button className="checkout-button" type="submit">
-                Xác nhận đặt hàng
-                <ArrowRight size={17} aria-hidden="true" />
-              </button>
-              <p className="checkout-security">
-                <BadgeCheck size={16} aria-hidden="true" />
-                Thông tin được lưu để vận hành đơn hàng trong phiên bản bàn giao.
-              </p>
             </form>
           ) : cart.length ? (
-            cart.map((line) => (
-              <article className="cart-line" key={line.product.id}>
-                <Image
-                  src={line.product.image}
-                  alt=""
-                  width={90}
-                  height={120}
-                  unoptimized
-                />
-                <div className="cart-line-details">
-                  <h3>{line.product.name}</h3>
-                  <p>{formatMoney(line.product.price)}</p>
-                  <div
-                    className="quantity-control"
-                    role="group"
-                    aria-label={`Số lượng ${line.product.name}`}
+            /* STATE 1: CART ITEMS */
+            <div className="cart-items-stack" role="list">
+              {cart.map((line) => {
+                const atStockCeiling = line.quantity >= line.product.stock;
+                return (
+                  <article
+                    className="cart-line"
+                    key={line.product.id}
+                    id={`cart-line-${line.product.id}`}
+                    role="listitem"
                   >
-                    <button
-                      type="button"
-                      aria-label={`Giảm số lượng ${line.product.name}`}
-                      onClick={() => onUpdateQuantity(line.product.id, -1)}
-                    >
-                      <Minus size={15} aria-hidden="true" />
-                    </button>
-                    <output aria-live="polite">{line.quantity}</output>
-                    <button
-                      type="button"
-                      aria-label={`Tăng số lượng ${line.product.name}`}
-                      disabled={line.quantity >= line.product.stock}
-                      onClick={() => onUpdateQuantity(line.product.id, 1)}
-                    >
-                      <Plus size={15} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))
+                    <Image
+                      src={line.product.image}
+                      alt=""
+                      width={90}
+                      height={120}
+                      unoptimized
+                    />
+                    <div className="cart-line-details">
+                      <div className="cart-line-top">
+                        <span className="cart-line-category">
+                          {line.product.category}
+                        </span>
+                        <button
+                          type="button"
+                          className="cart-remove-btn"
+                          aria-label={`Xóa ${line.product.name} khỏi giỏ`}
+                          onClick={() => onRemoveLine(line.product.id)}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                          <span>Xóa</span>
+                        </button>
+                      </div>
+
+                      <h3 className="cart-line-name">{line.product.name}</h3>
+                      <p className="cart-line-price">
+                        {formatMoney(line.product.price)}
+                      </p>
+
+                      <div className="cart-line-actions">
+                        <div
+                          className="quantity-control"
+                          role="group"
+                          aria-label={`Số lượng ${line.product.name}`}
+                        >
+                          <button
+                            type="button"
+                            aria-label={`Giảm số lượng ${line.product.name}`}
+                            onClick={() => onUpdateQuantity(line.product.id, -1)}
+                          >
+                            <Minus size={15} aria-hidden="true" />
+                          </button>
+                          <output aria-live="polite">{line.quantity}</output>
+                          <button
+                            type="button"
+                            aria-label={`Tăng số lượng ${line.product.name}`}
+                            disabled={atStockCeiling}
+                            onClick={() => onUpdateQuantity(line.product.id, 1)}
+                          >
+                            <Plus size={15} aria-hidden="true" />
+                          </button>
+                        </div>
+
+                        {atStockCeiling && (
+                          <span className="stock-ceiling-note" role="status">
+                            Tối đa ({line.product.stock})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           ) : (
+            /* EMPTY STATE */
             <div className="empty-cart">
-              <ShoppingBag size={28} aria-hidden="true" />
-              <h3>Giỏ hàng đang trống.</h3>
-              <p>Chọn một sản phẩm phù hợp để bắt đầu đơn hàng.</p>
-              <button type="button" onClick={onCloseCart}>
-                Tiếp tục chọn
+              <ShoppingBag size={32} aria-hidden="true" />
+              <h3>Giỏ hàng đang trống</h3>
+              <p>Chọn một sản phẩm phù hợp để bắt đầu quy trình chăm da.</p>
+              <button
+                type="button"
+                className="empty-cart-cta"
+                onClick={onCloseCart}
+              >
+                Tiếp tục chọn sản phẩm
               </button>
             </div>
           )}
         </div>
 
+        {/* Cart Bottom Summary & Checkout Trigger */}
         {checkoutState === "cart" && cart.length > 0 && (
           <div className="cart-summary">
             <div className="coupon-row">
               <label>
-                <span>Mã giảm giá</span>
+                <span>Mã ưu đãi</span>
                 <input
-                  aria-describedby={couponValid ? "coupon-success" : undefined}
+                  aria-describedby={
+                    couponValid ? "coupon-success" : coupon.trim() ? "coupon-hint" : undefined
+                  }
                   value={coupon}
                   onChange={(event) => {
                     onCouponChange(event.target.value);
@@ -286,7 +535,11 @@ export function CartDrawer({
                   placeholder="Ví dụ: TINH10"
                 />
               </label>
-              <button type="button" onClick={onApplyCoupon}>
+              <button
+                type="button"
+                className={couponValid ? "is-applied" : ""}
+                onClick={onApplyCoupon}
+              >
                 {couponValid ? (
                   <>
                     <Check size={15} aria-hidden="true" />
@@ -297,11 +550,17 @@ export function CartDrawer({
                 )}
               </button>
             </div>
-            {couponValid && (
+
+            {couponValid ? (
               <p className="coupon-success" id="coupon-success" role="status">
-                TINH10 đang giảm 10% cho đơn này.
+                Mã TINH10 đã được áp dụng: giảm 10% tiền hàng.
               </p>
-            )}
+            ) : coupon.trim() ? (
+              <p className="coupon-hint" id="coupon-hint">
+                Nhấn “Áp dụng” để kích hoạt mã giảm giá.
+              </p>
+            ) : null}
+
             <dl className="summary-breakdown">
               <div>
                 <dt>Tạm tính</dt>
@@ -313,21 +572,33 @@ export function CartDrawer({
                   <dd>-{formatMoney(discount)}</dd>
                 </div>
               )}
+              <div>
+                <dt>Vận chuyển</dt>
+                <dd className={isFreeShipping ? "free-shipping-tag" : "pending-shipping"}>
+                  {shippingLabel}
+                </dd>
+              </div>
               <div className="total-row">
-                <dt>Tổng</dt>
+                <dt>
+                  {isFreeShipping ? "Tổng thanh toán" : "Ước tính tiền hàng"}
+                </dt>
                 <dd>{formatMoney(subtotal - discount)}</dd>
               </div>
             </dl>
+
             <button
-              className="checkout-button"
+              className="checkout-button primary-action"
               type="button"
               onClick={() => onSetCheckoutState("details")}
             >
-              Tiếp tục đặt hàng
-              <ArrowRight size={17} aria-hidden="true" />
+              Tiến hành nhận hàng
+              <ArrowRight size={18} aria-hidden="true" />
             </button>
+
             <small className="shipping-note">
-              Miễn phí giao hàng cho đơn từ 1.200.000 ₫.
+              {isFreeShipping
+                ? "Đơn hàng đủ điều kiện miễn phí giao nhận toàn quốc."
+                : `Miễn phí giao hàng từ ${formatMoney(FREE_SHIPPING_THRESHOLD)}.`}
             </small>
           </div>
         )}

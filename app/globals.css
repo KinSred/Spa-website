@@ -2772,13 +2772,7 @@ a:active {
   left: 0;
   right: 0;
   z-index: var(--z-sticky);
-  transform: translateY(0);
-  transition: transform var(--dur-short) var(--ease-out);
-}
-
-.site-header.is-compact,
-.site-header.is-banner-dismissed {
-  transform: translateY(calc(var(--banner-h) * -1));
+  pointer-events: none;
 }
 
 .site-shell > main {

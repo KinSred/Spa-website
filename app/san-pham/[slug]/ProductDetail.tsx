@@ -116,7 +116,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                 </figcaption>
               ) : (
                 <span className="studio-stock-ready">
-                  Đang có sẵn tại atelier
+                  Còn {product.stock} sản phẩm
                 </span>
               )}
             </div>
@@ -152,7 +152,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             <span className="studio-sensorial-note">{product.note}</span>
 
             <div className="studio-price-block">
-              <span className="price-lead-label">Giá niêm yết chính hãng</span>
+              <span className="price-lead-label">Giá</span>
               <strong className="studio-price-display">{formatMoney(product.price)}</strong>
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                   : "Giỏ đã đạt số lượng tồn kho hiện có."
                 : quantity >= product.stock
                   ? `Đã chọn tối đa ${product.stock} sản phẩm còn lại.`
-                  : `${product.stock} sản phẩm đang có sẵn tại atelier.`}
+                  : `Còn ${product.stock} sản phẩm.`}
             </span>
             {added && (
               <Link className="studio-view-cart-link" href="/?cart=open">

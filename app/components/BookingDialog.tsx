@@ -1,29 +1,50 @@
 "use client";
 
-import { ArrowRight, Check, Clock3, X } from "lucide-react";
+import { ArrowRight, Calendar, Check, Clock3, Sparkles, X } from "lucide-react";
 import { FormEvent, RefObject } from "react";
 import { formatMoney, services } from "../data";
+import {
+  formatVietnameseDate,
+  formatVietnameseDateLong,
+  getUpcomingDates,
+} from "../date-utils";
 
-type BookingState = "idle" | "submitting" | "confirmed";
+export type BookingState = "idle" | "submitting" | "confirmed";
+
+export const CANONICAL_TIME_SLOTS = [
+  "09:00–11:00",
+  "11:00–13:00",
+  "14:00–16:00",
+  "16:00–18:00",
+  "18:00–20:00",
+];
 
 type BookingDialogProps = {
   bookingDialogRef: RefObject<HTMLDialogElement | null>;
-  bookingServiceRef: RefObject<HTMLSelectElement | null>;
+  bookingInitialFocusRef: RefObject<HTMLButtonElement | null>;
   bookingState: BookingState;
   bookingReference: string | null;
   selectedServiceId: string;
   onSelectServiceId: (id: string) => void;
+  selectedDate: string;
+  onSelectDate: (date: string) => void;
+  selectedTime: string;
+  onSelectTime: (time: string) => void;
   onSubmitBooking: (event: FormEvent<HTMLFormElement>) => void;
   onCloseDialog: () => void;
 };
 
 export function BookingDialog({
   bookingDialogRef,
-  bookingServiceRef,
+  bookingInitialFocusRef,
   bookingState,
   bookingReference,
   selectedServiceId,
   onSelectServiceId,
+  selectedDate,
+  onSelectDate,
+  selectedTime,
+  onSelectTime,
   onSubmitBooking,
   onCloseDialog,
 }: BookingDialogProps) {
@@ -36,9 +57,14 @@ export function BookingDialog({
     }
   };
 
+  const currentService =
+    services.find((item) => item.id === selectedServiceId) ?? services[0];
+
+  const dateOptions = getUpcomingDates(10);
+
   return (
     <dialog
-      className="booking-dialog"
+      className="booking-dialog studio-booking-modal"
       ref={bookingDialogRef}
       aria-labelledby="booking-title"
       aria-describedby="booking-description"
@@ -52,12 +78,12 @@ export function BookingDialog({
         onSubmit={onSubmitBooking}
         aria-busy={bookingState === "submitting"}
       >
-        <header>
+        <header className="booking-modal-header">
           <div>
-            <span>Đặt lịch</span>
+            <span className="booking-kicker">TĨNH APPOINTMENT STUDIO</span>
             <h2 id="booking-title">Chọn một khoảng dành cho làn da.</h2>
             <p id="booking-description">
-              Chọn dịch vụ và khung giờ; yêu cầu sẽ xuất hiện ngay trong khu quản trị.
+              Khung giờ tư vấn và chăm sóc chuyên sâu tại phòng cabine.
             </p>
           </div>
           <button
@@ -71,17 +97,40 @@ export function BookingDialog({
         </header>
 
         {bookingState === "confirmed" ? (
-          <div className="booking-confirmation" role="status">
-            <span>
-              <Check size={24} aria-hidden="true" />
+          <div className="booking-confirmation studio-booking-confirmed" role="status">
+            <span className="confirmation-icon" aria-hidden="true">
+              <Check size={26} />
             </span>
-            <p>Yêu cầu đã được ghi nhận</p>
-            <h3>TĨNH sẽ gọi để xác nhận khung giờ.</h3>
-            <strong className="booking-reference">{bookingReference}</strong>
-            <small>
-              Bạn chưa cần thanh toán. Mọi thay đổi về dịch vụ có thể trao đổi
-              khi lễ tân liên hệ.
+            <p className="confirmation-lead">Yêu cầu lịch đã được ghi nhận</p>
+            <h3 className="confirmation-code">{bookingReference}</h3>
+
+            <div className="confirmation-dossier">
+              <div className="dossier-row">
+                <span>Liệu trình:</span>
+                <strong>{currentService.name}</strong>
+              </div>
+              <div className="dossier-row">
+                <span>Thời lượng:</span>
+                <span>{currentService.duration}</span>
+              </div>
+              <div className="dossier-row">
+                <span>Ngày hẹn:</span>
+                <strong>{formatVietnameseDate(selectedDate)}</strong>
+              </div>
+              <div className="dossier-row">
+                <span>Khung giờ:</span>
+                <strong>{selectedTime}</strong>
+              </div>
+              <div className="dossier-row">
+                <span>Trạng thái:</span>
+                <span className="status-badge">Chờ xác nhận</span>
+              </div>
+            </div>
+
+            <small className="confirmation-note">
+              Thông tin đã được lưu lại trên thiết bị này. Bạn chưa cần thanh toán trước.
             </small>
+
             <button
               className="primary-action"
               type="button"
@@ -92,110 +141,192 @@ export function BookingDialog({
             </button>
           </div>
         ) : (
-          <>
-            <div className="booking-form-grid">
-              <label>
-                <span>Liệu trình</span>
-                <select
-                  ref={bookingServiceRef}
-                  name="service"
-                  required
-                  value={selectedServiceId}
-                  onChange={(event) => onSelectServiceId(event.target.value)}
-                >
-                  {services.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.name} · {formatMoney(service.price)}
-                    </option>
-                  ))}
-                </select>
-                <small className="field-help">
-                  Bạn có thể đổi lựa chọn khi TĨNH gọi xác nhận.
-                </small>
-              </label>
-              <label>
-                <span>Ngày mong muốn</span>
-                <input
-                  name="date"
-                  type="date"
-                  required
-                  min={new Date().toISOString().split("T")[0]}
-                />
-                <small className="field-help">
-                  Mở lịch từ thứ Hai đến Chủ Nhật.
-                </small>
-              </label>
-              <label>
-                <span>Khung giờ</span>
-                <select name="time" required defaultValue="">
-                  <option value="" disabled>
-                    Chọn khung giờ
-                  </option>
-                  <option>09:00-11:00</option>
-                  <option>11:00-13:00</option>
-                  <option>14:00-16:00</option>
-                  <option>16:00-18:00</option>
-                  <option>18:00-20:00</option>
-                </select>
-                <small className="field-help">
-                  Lễ tân sẽ xác nhận giờ bắt đầu chính xác.
-                </small>
-              </label>
-              <label>
-                <span>Họ và tên</span>
-                <input
-                  name="name"
-                  autoComplete="name"
-                  required
-                  placeholder="Nguyễn An"
-                />
-                <small className="field-help">
-                  Tên dùng để giữ lịch tại quầy.
-                </small>
-              </label>
-              <label>
-                <span>Số điện thoại</span>
-                <input
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  required
-                  inputMode="tel"
-                  pattern="[0-9+\s]{9,14}"
-                  placeholder="090 123 4567"
-                />
-                <small className="field-help">
-                  TĨNH chỉ dùng số này để xác nhận lịch.
-                </small>
-              </label>
-              <label className="full-field">
-                <span>Điều bạn muốn chuyên viên biết</span>
-                <textarea
-                  name="note"
-                  placeholder="Da đang nhạy cảm sau treatment, routine hiện có…"
-                />
-                <small className="field-help">
-                  Không cần ghi thông tin bệnh án nhạy cảm tại đây.
-                </small>
-              </label>
+          <div className="booking-body-flow">
+            {/* Hidden form values preserving standard FormData contracts */}
+            <input type="hidden" name="service" value={selectedServiceId} />
+            <input type="hidden" name="date" value={selectedDate} />
+            <input type="hidden" name="time" value={selectedTime} />
+
+            {/* Step 1: Select Service */}
+            <section className="booking-step-section" aria-label="1. Chọn liệu trình">
+              <div className="step-section-heading">
+                <span className="step-tag">BƯỚC 01</span>
+                <h3>Chọn liệu trình</h3>
+              </div>
+              <div
+                className="booking-service-cards"
+                role="group"
+                aria-label="Danh sách liệu trình"
+              >
+                {services.map((service, index) => {
+                  const isSelected = selectedServiceId === service.id;
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      ref={index === 0 ? bookingInitialFocusRef : undefined}
+                      className={`booking-service-card ${isSelected ? "is-selected" : ""}`}
+                      aria-pressed={isSelected}
+                      onClick={() => onSelectServiceId(service.id)}
+                    >
+                      <div className="card-meta-line">
+                        <strong className="service-name">{service.name}</strong>
+                        <span className="service-duration">{service.duration}</span>
+                      </div>
+                      <p className="service-desc">{service.description}</p>
+                      <div className="card-footer-line">
+                        <span className="service-fee">{formatMoney(service.price)}</span>
+                        {isSelected && (
+                          <span className="selection-badge" aria-label="Đang chọn">
+                            <Check size={14} aria-hidden="true" />
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Step 2: Select Date (Localized dd/mm/yyyy) */}
+            <section className="booking-step-section" aria-label="2. Chọn ngày mong muốn">
+              <div className="step-section-heading">
+                <span className="step-tag">BƯỚC 02</span>
+                <div className="step-title-row">
+                  <h3>Ngày mong muốn</h3>
+                  <span className="current-date-preview">
+                    {formatVietnameseDateLong(selectedDate)}
+                  </span>
+                </div>
+              </div>
+              <div
+                className="booking-date-strip"
+                role="group"
+                aria-label="Lựa chọn ngày hẹn theo lịch Việt"
+              >
+                {dateOptions.map((opt) => {
+                  const isSelected = selectedDate === opt.iso;
+                  return (
+                    <button
+                      key={opt.iso}
+                      type="button"
+                      className={`date-chip ${isSelected ? "is-selected" : ""} ${
+                        opt.isToday ? "is-today" : ""
+                      }`}
+                      aria-pressed={isSelected}
+                      onClick={() => onSelectDate(opt.iso)}
+                    >
+                      <span className="date-weekday">{opt.weekday}</span>
+                      <strong className="date-num">{opt.display}</strong>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Step 3: Select Time Window */}
+            <section className="booking-step-section" aria-label="3. Chọn khung giờ">
+              <div className="step-section-heading">
+                <span className="step-tag">BƯỚC 03</span>
+                <h3>Khung giờ tiếp đón</h3>
+              </div>
+              <div
+                className="booking-time-grid"
+                role="group"
+                aria-label="Khung giờ tiếp đón"
+              >
+                {CANONICAL_TIME_SLOTS.map((slot) => {
+                  const isSelected = selectedTime === slot;
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      className={`time-slot-btn ${isSelected ? "is-selected" : ""}`}
+                      aria-pressed={isSelected}
+                      onClick={() => onSelectTime(slot)}
+                    >
+                      <Clock3 size={15} aria-hidden="true" />
+                      <span>{slot}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Step 4: Customer Details */}
+            <section className="booking-step-section" aria-label="4. Thông tin liên hệ">
+              <div className="step-section-heading">
+                <span className="step-tag">BƯỚC 04</span>
+                <h3>Thông tin người hẹn</h3>
+              </div>
+              <div className="booking-inputs-grid">
+                <label className="booking-field">
+                  <span>Họ và tên</span>
+                  <input
+                    name="name"
+                    autoComplete="name"
+                    required
+                    placeholder="Nguyễn An"
+                  />
+                  <small>Tên dùng để đón tiếp tại atelier.</small>
+                </label>
+                <label className="booking-field">
+                  <span>Số điện thoại</span>
+                  <input
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    required
+                    inputMode="tel"
+                    pattern="[0-9+\s]{9,14}"
+                    placeholder="090 123 4567"
+                  />
+                  <small>Dùng để xác nhận thông tin lịch hẹn.</small>
+                </label>
+                <label className="booking-field full-width">
+                  <span>Ghi chú cho chuyên viên (không bắt buộc)</span>
+                  <textarea
+                    name="note"
+                    placeholder="Tình trạng da hiện tại hoặc điều bạn muốn chuyên viên lưu ý…"
+                  />
+                  <small>Không cần ghi chép lịch sử y khoa nhạy cảm tại đây.</small>
+                </label>
+              </div>
+            </section>
+
+            {/* Pre-submission Summary */}
+            <div className="booking-summary-strip" aria-label="Tóm tắt yêu cầu hẹn">
+              <div className="summary-left">
+                <Sparkles size={16} aria-hidden="true" />
+                <div>
+                  <strong>{currentService.name}</strong>
+                  <span>
+                    {formatVietnameseDate(selectedDate)} · {selectedTime} · {currentService.duration}
+                  </span>
+                </div>
+              </div>
+              <div className="summary-right">
+                <span className="summary-price-label">Dự tính:</span>
+                <strong className="summary-price">{formatMoney(currentService.price)}</strong>
+              </div>
             </div>
-            <footer>
-              <p>
-                <Clock3 size={17} aria-hidden="true" />
-                Yêu cầu lịch chưa phải xác nhận cuối cùng.
+
+            {/* Modal Footer Actions */}
+            <footer className="booking-modal-footer">
+              <p className="booking-policy-note">
+                <Calendar size={15} aria-hidden="true" />
+                Yêu cầu lịch chưa phải xác nhận cuối cùng. Bạn chưa cần thanh toán.
               </p>
               <button
                 className="primary-action"
                 type="submit"
                 disabled={bookingState === "submitting"}
               >
-                {bookingState === "submitting"
-                  ? "Đang gửi…"
-                  : "Gửi yêu cầu lịch"}
+                {bookingState === "submitting" ? "Đang ghi nhận…" : "Gửi yêu cầu lịch"}
                 <ArrowRight size={18} aria-hidden="true" />
               </button>
             </footer>
-          </>
+          </div>
         )}
       </form>
     </dialog>

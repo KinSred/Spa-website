@@ -77,7 +77,7 @@ export function AdminSidebar({
         <div className="admin-brand">
           <Link className="wordmark" href="/">
             TĨNH
-            <span>back office</span>
+            <span>operations console</span>
           </Link>
           <button
             className="icon-button admin-close"
@@ -148,8 +148,8 @@ export function AdminSidebar({
         </nav>
 
         <div className="admin-sidebar-foot">
-          <p>Không gian vận hành</p>
-          <span>Dữ liệu ghi nhận từ storefront trên thiết bị này</span>
+          <p>TĨNH Operations Console</p>
+          <span>Dữ liệu demo lưu cục bộ trên trình duyệt này</span>
           <Link href="/">
             <ArrowLeft size={16} aria-hidden="true" />
             Về cửa hàng

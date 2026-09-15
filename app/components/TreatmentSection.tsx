@@ -33,9 +33,9 @@ export function TreatmentSection({
           </h2>
 
           <p className="protocol-subtext">
-            Mỗi lịch hẹn bắt đầu bằng việc xem lại routine hiện tại - kể cả sản
-            phẩm không mua tại TĨNH. Chúng tôi không chỉ làm dịu da trong 75
-            phút, mà thiết lập lại cách làn da tự phục hồi trong nhiều tháng tới.
+            Mỗi lịch hẹn bắt đầu bằng việc xem lại routine hiện tại. Liệu trình
+            tập trung vào làm sạch dịu, làm mát và hỗ trợ củng cố màng ẩm tự
+            nhiên cho làn da.
           </p>
 
           {/* Sequential 3-Step Protocol Progress */}
@@ -56,8 +56,8 @@ export function TreatmentSection({
               <div className="step-content">
                 <strong>Chăm sóc phù hợp theo tình trạng da</strong>
                 <p>
-                  Thực hiện đắp mặt nạ lipid thực vật, làm mát dịu hoặc giải phóng
-                  bít tắc nhẹ nhàng theo tình trạng da tại thời điểm hẹn.
+                  Thực hiện làm dịu, cấp ẩm hoặc làm sạch lỗ chân lông nhẹ
+                  nhàng theo liệu trình đã chọn.
                 </p>
               </div>
             </div>
