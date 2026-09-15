@@ -74,7 +74,7 @@ test("keeps design tokens, overlay safety, persistence and reduced motion in sou
   assert.match(css, /@import "\.\.\/tokens\.css"/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(css, /transition-all/);
-  assert.match(liquid, /N10 Floating-on-scroll morph/);
+  assert.match(liquid, /Restrained architectural header/);
   assert.match(tokens, /--color-accent:/);
   assert.match(tokens, /--dur-long:\s*460ms/);
   assert.match(storefront, /inert=\{!cartOpen\}/);

@@ -275,7 +275,7 @@ export function CartDrawer({
               {/* Recipient Summary Card */}
               <div className="recipient-review-card">
                 <div className="review-header">
-                  <strong>Thông tin giao nhận</strong>
+                  <strong>Thông tin nhận hàng</strong>
                   <button
                     type="button"
                     className="edit-recipient-btn"
@@ -293,9 +293,9 @@ export function CartDrawer({
                 )}
               </div>
 
-              {/* Payment Selector */}
-              <fieldset className="payment-options">
-                <legend>Phương thức thanh toán</legend>
+              {/* Payment Method Selector */}
+              <fieldset className="checkout-payment-methods">
+                <legend className="payment-legend">Phương thức thanh toán</legend>
                 <label className={`payment-option ${checkoutDraft.payment === "cod" ? "is-active" : ""}`}>
                   <input
                     type="radio"
@@ -307,7 +307,7 @@ export function CartDrawer({
                   <Banknote size={20} aria-hidden="true" />
                   <div className="option-copy">
                     <strong>Khi nhận hàng (COD)</strong>
-                    <small>Kiểm tra bưu kiện và thanh toán tiền mặt trực tiếp cho bên giao nhận.</small>
+                    <small>Lựa chọn thanh toán khi nhận hàng trong luồng demo.</small>
                   </div>
                 </label>
 
@@ -387,7 +387,7 @@ export function CartDrawer({
                   onChange={(e) => onUpdateDraft({ name: e.target.value })}
                   placeholder="Nguyễn An"
                 />
-                <small>Tên ghi trên kiện hàng.</small>
+                <small>Tên người nhận trong đơn hàng demo.</small>
               </label>
 
               <label className="checkout-field">
@@ -403,7 +403,7 @@ export function CartDrawer({
                   onChange={(e) => onUpdateDraft({ phone: e.target.value })}
                   placeholder="090 123 4567"
                 />
-                <small>Dùng để bên giao nhận liên hệ khi phát hàng.</small>
+                <small>Thông tin được lưu cùng đơn hàng demo trên thiết bị này.</small>
               </label>
 
               <label className="checkout-field">
@@ -416,7 +416,7 @@ export function CartDrawer({
                   onChange={(e) => onUpdateDraft({ address: e.target.value })}
                   placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành"
                 />
-                <small>Địa chỉ nhận kiện mỹ phẩm.</small>
+                <small>Địa chỉ dùng để mô phỏng bước thông tin nhận hàng.</small>
               </label>
 
               <label className="checkout-field">

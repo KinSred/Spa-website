@@ -379,6 +379,7 @@ test("Hero: final reconciled class contract and style rules exist without discar
 
   for (const cls of discardedClasses) {
     assert.doesNotMatch(heroCode, new RegExp(cls), `Hero.tsx must NOT contain discarded class: ${cls}`);
+    assert.doesNotMatch(liquidCss, new RegExp(`\\.${cls}\\b`), `liquid.css must NOT contain discarded selector: .${cls}`);
   }
 
   // Absence of fabricated/unsupported claims in Hero
@@ -703,7 +704,7 @@ test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: PriceFilter single source of tr
   assert.deepEqual(
     under700Products.map((p) => p.name).sort(),
     ["Nettoyant Voile", "Écran 50"].sort(),
-    "under700 must match exactly Nettoyant Voile (420k) and Écran 50 (680k)",
+    "under700 must match exactly Nettoyant Voile and Écran 50",
   );
 
   const midFilter = PRICE_FILTERS.find((f) => f.id === "700to1000");
@@ -712,7 +713,7 @@ test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: PriceFilter single source of tr
   assert.deepEqual(
     midProducts.map((p) => p.name).sort(),
     ["Crème Calme", "Huile Ambre", "Sérum Soie 01"].sort(),
-    "700to1000 must match exactly Crème Calme (850k), Huile Ambre (980k), and Sérum Soie 01 (920k)",
+    "700to1000 must match exactly Crème Calme, Huile Ambre, and Sérum Soie 01",
   );
 
   const over1000Filter = PRICE_FILTERS.find((f) => f.id === "over1000");
@@ -721,7 +722,7 @@ test("SOURCE CONTRACT TEST & STATE-MACHINE TEST: PriceFilter single source of tr
   assert.deepEqual(
     over1000Products.map((p) => p.name),
     ["Sculpt I"],
-    "over1000 must match exactly Sculpt I (1850k)",
+    "over1000 must match exactly Sculpt I",
   );
 
   const allFilter = PRICE_FILTERS.find((f) => f.id === "all");
@@ -951,6 +952,106 @@ test("SOURCE CONTRACT TEST: Scrollbar audit verifies real selectors", async () =
 
   // .order-table and .active-tags-rail must be present in restrained scrollbars list
   assert.match(liquidCss, /html,\s*body,[\s\S]*?\.order-table,[\s\S]*?\.active-tags-rail\s*\{[\s\S]*?scrollbar-width:\s*thin;/);
+});
+
+test("ACCESSIBILITY & SEMANTICS: Treatment selector implements accessible group and aria-pressed controls", async () => {
+  const treatmentCode = await readFile(
+    new URL("../app/components/TreatmentSection.tsx", import.meta.url),
+    "utf8",
+  );
+
+  // Group container with descriptive aria-label
+  assert.match(treatmentCode, /role="group"\s+aria-label="Chọn liệu trình"/);
+
+  // Buttons use type="button" and aria-pressed
+  assert.match(treatmentCode, /aria-pressed=\{isSelected\}/);
+
+  // Incomplete tab semantics must NOT exist
+  assert.doesNotMatch(treatmentCode, /role="tablist"/);
+  assert.doesNotMatch(treatmentCode, /role="tab"/);
+  assert.doesNotMatch(treatmentCode, /aria-selected/);
+});
+
+test("CANONICAL DATA INTEGRITY: Treatment narrative is driven by canonical service description without invented rituals", async () => {
+  const [treatmentCode, liquidCss] = await Promise.all([
+    readFile(new URL("../app/components/TreatmentSection.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/liquid.css", import.meta.url), "utf8"),
+  ]);
+
+  // Driven by canonical activeService.description
+  assert.match(treatmentCode, /activeService\.description/);
+
+  // Absence of invented 3-step ritual in component and CSS
+  assert.doesNotMatch(treatmentCode, /narrative-ritual-steps/);
+  assert.doesNotMatch(treatmentCode, /ritual-step/);
+  assert.doesNotMatch(treatmentCode, /TRÌNH TỰ BUỔI HẸN/);
+  assert.doesNotMatch(liquidCss, /\.narrative-ritual-steps/);
+  assert.doesNotMatch(liquidCss, /\.ritual-step\b/);
+
+  // Absence of unsupported 1:1 privacy claim and staff-invented alt
+  assert.doesNotMatch(treatmentCode, /Không gian riêng tư 1:1/);
+  assert.doesNotMatch(treatmentCode, /Chuyên viên TĨNH kiểm tra tình trạng da/);
+  assert.match(treatmentCode, /alt="Không gian phòng chăm sóc da cabine atelier TĨNH"/);
+});
+
+test("TRUTHFUL COMMERCE & LOGISTICS SWEEP: Absence of fabricated logistics and quasi-medical claims", async () => {
+  const [pdpCode, cartDrawerCode, continuityCode, catalogueCode] = await Promise.all([
+    readFile(new URL("../app/san-pham/[slug]/ProductDetail.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CartDrawer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ContinuitySection.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ProductCatalogue.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // PDP: No cold chain logistics or quasi-medical claims
+  assert.doesNotMatch(pdpCode, /bảo quản lạnh/i);
+  assert.doesNotMatch(pdpCode, /Chỉ định chuyên môn/i);
+  assert.doesNotMatch(pdpCode, /Vấn đề cần can thiệp/i);
+  assert.doesNotMatch(pdpCode, /Chuyên viên TĨNH sẽ soi da/);
+
+  // PDP: Truthful commerce labels
+  assert.match(pdpCode, /Thông tin phù hợp/);
+  assert.match(pdpCode, /Nhu cầu chăm sóc/);
+  assert.match(pdpCode, /Đặc điểm sản phẩm/);
+  assert.match(pdpCode, /detailLabel/);
+  assert.match(pdpCode, /product\.category === "Thiết bị"\s*\?\s*"Đặc điểm chính"\s*:\s*"Thành phần trọng tâm"/);
+  assert.match(pdpCode, /Tham khảo dịch vụ Soi da &amp; thiết kế routine/);
+  assert.match(pdpCode, /Chọn số lượng trước khi thêm vào giỏ/);
+
+  // CartDrawer: No real-carrier claims
+  assert.doesNotMatch(cartDrawerCode, /bên giao nhận/);
+  assert.doesNotMatch(cartDrawerCode, /bưu kiện/);
+  assert.doesNotMatch(cartDrawerCode, /liên hệ khi phát hàng/);
+  assert.doesNotMatch(cartDrawerCode, /Thông tin giao nhận/);
+  assert.match(cartDrawerCode, /Thông tin nhận hàng/);
+  assert.match(cartDrawerCode, /Lựa chọn thanh toán khi nhận hàng trong luồng demo/);
+  assert.match(cartDrawerCode, /Thông tin được lưu cùng đơn hàng demo trên thiết bị này/);
+  assert.match(cartDrawerCode, /Địa chỉ dùng để mô phỏng bước thông tin nhận hàng/);
+
+  // Continuity: No guaranteed operational follow-up
+  assert.doesNotMatch(continuityCode, /Chuyên viên ghi nhận/);
+  assert.match(continuityCode, /Định hướng chu trình dưỡng tại nhà phù hợp với tình trạng phục hồi/);
+
+  // ProductCatalogue: Category-aware ingredient label
+  assert.match(catalogueCode, /featuredProduct\.category === "Thiết bị"\s*\?\s*"ĐẶC ĐIỂM CHÍNH:"\s*:\s*"THÀNH PHẦN TRỌNG TÂM:"/);
+});
+
+test("STOCK CEILING ACCURACY: ProductCard, Catalogue, and PDP reserve 'Hết hàng' strictly for stock === 0", async () => {
+  const [productCardCode, catalogueCode, pdpCode] = await Promise.all([
+    readFile(new URL("../app/components/ProductCard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ProductCatalogue.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/san-pham/[slug]/ProductDetail.tsx", import.meta.url), "utf8"),
+  ]);
+
+  // ProductCard distinguishes zero stock vs reached cart ceiling
+  assert.match(productCardCode, /product\.stock === 0 \? "Hết hàng" : "Đã chọn tối đa"/);
+  assert.match(productCardCode, /product\.stock === 0\s*\?\s*`\$\{product\.name\} đã hết hàng`\s*:\s*`\$\{product\.name\} đã chọn tối đa số lượng`/);
+
+  // Catalogue featured product distinguishes zero stock vs reached cart ceiling
+  assert.match(catalogueCode, /featuredProduct\.stock === 0 \? "Hết hàng" : "Đã chọn tối đa"/);
+
+  // PDP distinguishes zero stock vs reached cart ceiling
+  assert.match(pdpCode, /product\.stock === 0 \?\s*\(\s*<span>Hết hàng<\/span>\s*\)/);
+  assert.match(pdpCode, /addedQuantity === 0 \? "Đã chọn tối đa" : "Đã thêm vào giỏ"/);
 });
 
 

@@ -75,8 +75,8 @@ export function ContinuitySection() {
           <span className="stage-kicker">GIAI ĐOẠN III · TIẾP NỐI</span>
           <h3 className="stage-heading">Hướng dẫn chăm sóc tiếp nối</h3>
           <p className="stage-body">
-            Chuyên viên ghi nhận cảm nhận của bạn sau buổi trị liệu để định hướng
-            chu trình dưỡng tại nhà phù hợp, hỗ trợ làn da duy trì sự ổn định lâu dài.
+            Định hướng chu trình dưỡng tại nhà phù hợp với tình trạng phục hồi
+            của da sau buổi chăm sóc, hỗ trợ duy trì sự ổn định và cân bằng lâu dài.
           </p>
           <span className="stage-badge">Chăm sóc tiếp nối</span>
         </article>

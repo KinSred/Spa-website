@@ -73,6 +73,10 @@ export default function ProductDetail({ product }: { product: Product }) {
   };
 
   const itemIndex = String(product.id).padStart(2, "0");
+  const detailLabel =
+    product.category === "Thiết bị"
+      ? "Đặc điểm chính"
+      : "Thành phần trọng tâm";
 
   return (
     <main className="pdp-experience">
@@ -199,10 +203,12 @@ export default function ProductDetail({ product }: { product: Product }) {
                 disabled={product.stock === 0}
                 onClick={addToCart}
               >
-                {added ? (
+                {product.stock === 0 ? (
+                  <span>Hết hàng</span>
+                ) : added ? (
                   <>
                     <Check size={18} aria-hidden="true" />
-                    <span>{addedQuantity === 0 ? "Đã đủ tồn kho" : "Đã thêm vào giỏ"}</span>
+                    <span>{addedQuantity === 0 ? "Đã chọn tối đa" : "Đã thêm vào giỏ"}</span>
                   </>
                 ) : (
                   <>
@@ -222,7 +228,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                     : "Giỏ đã đạt số lượng tồn kho hiện có."
                   : quantity >= product.stock
                     ? `Đã chọn tối đa ${product.stock} sản phẩm còn lại.`
-                    : `Giao hàng bảo quản lạnh tiêu chuẩn atelier.`}
+                    : `Chọn số lượng trước khi thêm vào giỏ.`}
               </span>
               {added && (
                 <Link className="pdp-cart-link" href="/?cart=open">
@@ -241,7 +247,7 @@ export default function ProductDetail({ product }: { product: Product }) {
             </div>
 
             <div className="dossier-section">
-              <h2 className="dossier-heading">Hoạt chất trọng tâm</h2>
+              <h2 className="dossier-heading">{detailLabel}</h2>
               <ul className="dossier-ingredient-grid">
                 {product.ingredients.map((ingredient) => (
                   <li key={ingredient} className="dossier-ingredient-pill">
@@ -253,26 +259,26 @@ export default function ProductDetail({ product }: { product: Product }) {
             </div>
 
             <div className="dossier-section">
-              <h2 className="dossier-heading">Chỉ định chuyên môn</h2>
+              <h2 className="dossier-heading">Thông tin phù hợp</h2>
               <dl className="dossier-specs-list">
                 <div className="dossier-spec-row">
                   <dt>
                     <Compass size={14} aria-hidden="true" />
-                    Loại da phù hợp
+                    Loại da
                   </dt>
                   <dd>{product.skin.join(" · ")}</dd>
                 </div>
                 <div className="dossier-spec-row">
                   <dt>
                     <ShieldCheck size={14} aria-hidden="true" />
-                    Vấn đề cần can thiệp
+                    Nhu cầu chăm sóc
                   </dt>
                   <dd>{product.concern.join(" · ")}</dd>
                 </div>
                 <div className="dossier-spec-row">
                   <dt>
                     <Droplets size={14} aria-hidden="true" />
-                    Đặc tính sản phẩm
+                    Đặc điểm sản phẩm
                   </dt>
                   <dd>{product.note}</dd>
                 </div>
@@ -283,8 +289,8 @@ export default function ProductDetail({ product }: { product: Product }) {
           {/* Atelier Consultation Bridge */}
           <Link className="pdp-consultation-card" href="/#treatments">
             <div className="consult-text">
-              <strong>Chưa chắc sản phẩm phù hợp? Xem lịch tư vấn</strong>
-              <p>Chuyên viên TĨNH sẽ soi da và hướng dẫn chu trình kết hợp tại atelier.</p>
+              <strong>Tham khảo dịch vụ Soi da &amp; thiết kế routine</strong>
+              <p>Phân tích bề mặt da, thói quen và xây routine có thể mua theo từng bước. Xem lịch tư vấn tại phòng cabine.</p>
             </div>
             <ArrowRight size={18} aria-hidden="true" />
           </Link>

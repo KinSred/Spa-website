@@ -48,15 +48,14 @@ export function TreatmentSection({
           {/* Protocol Index Menu */}
           <div className="protocol-index-panel" aria-label="Danh mục liệu trình">
             <span className="index-panel-title">CHỌN NGHI THỨC</span>
-            <div className="protocol-index-list" role="tablist" aria-label="Danh sách liệu trình">
+            <div className="protocol-index-list" role="group" aria-label="Chọn liệu trình">
               {services.map((service, idx) => {
                 const isSelected = selectedServiceId === service.id;
                 return (
                   <button
                     key={service.id}
                     type="button"
-                    role="tab"
-                    aria-selected={isSelected}
+                    aria-pressed={isSelected}
                     className={`protocol-index-item ${isSelected ? "is-selected" : ""}`}
                     onClick={() => onSelectService(service.id)}
                   >
@@ -79,14 +78,14 @@ export function TreatmentSection({
             <figure className="protocol-index-figure">
               <Image
                 src="/consultation.webp"
-                alt="Chuyên viên TĨNH kiểm tra tình trạng da trong buổi tư vấn"
+                alt="Không gian phòng chăm sóc da cabine atelier TĨNH"
                 width={1280}
                 height={956}
                 unoptimized
                 loading="lazy"
                 sizes="(min-width: 1024px) 35vw, 100vw"
               />
-              <figcaption>Cabine Atelier TĨNH · Không gian riêng tư 1:1</figcaption>
+              <figcaption>Cabine Atelier TĨNH · Quy trình chăm sóc theo lịch hẹn</figcaption>
             </figure>
           </div>
 
@@ -102,31 +101,6 @@ export function TreatmentSection({
 
             <h3 className="narrative-service-title">{activeService.name}</h3>
             <p className="narrative-desc">{activeService.description}</p>
-
-            <div className="narrative-ritual-steps">
-              <span className="steps-title">TRÌNH TỰ BUỔI HẸN</span>
-              <div className="ritual-step">
-                <span className="step-count">01</span>
-                <div>
-                  <strong>Quan sát tình trạng da &amp; routine</strong>
-                  <p>Làm sạch dịu nhẹ và trao đổi về các thói quen chăm sóc hằng ngày.</p>
-                </div>
-              </div>
-              <div className="ritual-step">
-                <span className="step-count">02</span>
-                <div>
-                  <strong>Chăm sóc phục hồi màng ẩm</strong>
-                  <p>Làm dịu, cấp ẩm và hỗ trợ bề mặt da với công thức chuyên biệt.</p>
-                </div>
-              </div>
-              <div className="ritual-step">
-                <span className="step-count">03</span>
-                <div>
-                  <strong>Hướng dẫn chăm sóc tiếp nối</strong>
-                  <p>Chuyên viên tóm tắt các lưu ý để duy trì cảm giác cân bằng tại nhà.</p>
-                </div>
-              </div>
-            </div>
 
             <div className="narrative-action-bar">
               <div className="narrative-pricing">

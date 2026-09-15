@@ -279,7 +279,9 @@ export function ProductCatalogue({
             <p className="landmark-desc">{featuredProduct.description}</p>
 
             <div className="landmark-ingredients">
-              <span className="ingredients-label">HOẠT CHẤT TRỌNG TÂM:</span>
+              <span className="ingredients-label">
+                {featuredProduct.category === "Thiết bị" ? "ĐẶC ĐIỂM CHÍNH:" : "THÀNH PHẦN TRỌNG TÂM:"}
+              </span>
               <div className="ingredients-pills">
                 {featuredProduct.ingredients.map((ing) => (
                   <span key={ing} className="ingredient-pill">
@@ -305,7 +307,7 @@ export function ProductCatalogue({
                 onClick={() => onAddToCart(featuredProduct)}
               >
                 {featuredAtLimit ? (
-                  "Hết hàng"
+                  featuredProduct.stock === 0 ? "Hết hàng" : "Đã chọn tối đa"
                 ) : featuredJustAdded ? (
                   <>
                     <Check size={18} aria-hidden="true" />

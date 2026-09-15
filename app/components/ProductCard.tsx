@@ -89,14 +89,16 @@ export function ProductCard({
             onClick={() => onAddToCart(product)}
             aria-label={
               atStockLimit
-                ? `${product.name} đã đạt giới hạn tồn kho`
+                ? product.stock === 0
+                  ? `${product.name} đã hết hàng`
+                  : `${product.name} đã chọn tối đa số lượng`
                 : justAdded
                   ? `Đã thêm ${product.name} vào giỏ`
                   : `Thêm ${product.name} vào giỏ hàng`
             }
           >
             {atStockLimit ? (
-              "Hết hàng"
+              product.stock === 0 ? "Hết hàng" : "Đã chọn tối đa"
             ) : justAdded ? (
               <>
                 <Check size={16} aria-hidden="true" />

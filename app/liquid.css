@@ -1,8 +1,8 @@
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5
  * genre: editorial · design-system: design.md · designed-as-app
- * macrostructure: Marquee Hero / Photographic Purchase Studio / Bento Operations
+ * macrostructure: Dominant Editorial Hero / Architectural Catalogue / Protocol Suite
  * audience: khách spa thật · use: mua sản phẩm + đặt lịch · tone: quiet luxury
- * theme: Studio Mineral · nav: N10 Floating-on-scroll morph · footer: Ft5 Statement
+ * theme: Studio Mineral · nav: Restrained architectural header · footer: Ft5 Statement
  * contrast: pass (40–41) · slop: pass (42–45) · mobile: pass (34, 49, 50–57)
  */
 
@@ -2719,50 +2719,6 @@ textarea:disabled {
   margin: 0;
 }
 
-.narrative-ritual-steps {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  padding-block: var(--space-md);
-  border-block: var(--rule-hair) solid var(--color-rule);
-}
-
-.steps-title {
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-transform: uppercase;
-}
-
-.ritual-step {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-}
-
-.step-count {
-  font-family: var(--font-display);
-  font-size: var(--text-base);
-  color: var(--color-accent);
-  padding-top: 2px;
-}
-
-.ritual-step strong {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-ink);
-  margin-bottom: 2px;
-}
-
-.ritual-step p {
-  font-size: var(--text-xs);
-  color: var(--color-ink-2);
-  line-height: 1.5;
-  margin: 0;
-}
-
 .narrative-action-bar {
   display: flex;
   align-items: center;
@@ -4379,15 +4335,6 @@ textarea:disabled {
 
 /* ---------- 8. RESPONSIVE MEDIA QUERIES FOR REDESIGNED SYSTEM ---------- */
 @media (max-width: 64rem) {
-  .hero-canvas {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-xl);
-  }
-
-  .hero-portrait {
-    aspect-ratio: 16 / 10;
-  }
-
   .continuity-timeline {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4424,30 +4371,6 @@ textarea:disabled {
 }
 
 @media (max-width: 48rem) {
-  .hero-dual-pathways {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hero-top-rail {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2xs);
-  }
-
-  .hero-commitments {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-xs);
-  }
-
-  .hero-vignette-card {
-    position: relative;
-    bottom: auto;
-    right: auto;
-    max-width: 100%;
-    margin-top: var(--space-md);
-  }
-
   .product-grid-editorial {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4515,7 +4438,7 @@ textarea:disabled {
     padding-inline: var(--space-md);
   }
 
-  .hero-heading {
+  .hero-headline {
     font-size: 2.35rem;
   }
 
@@ -4524,29 +4447,6 @@ textarea:disabled {
   .journal-title,
   .continuity-title {
     font-size: 2rem;
-  }
-}
-
-
-@keyframes hero-settle {
-  from {
-    opacity: 0;
-    transform: scale(1.018);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes hero-copy-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-xs));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -4668,8 +4568,8 @@ textarea:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero .hero-media img,
-  .hero .hero-copy,
+  .hero-editorial .hero-image-wrap img,
+  .hero-editorial .hero-editorial-copy,
   .site-header.is-compact .nav-inner,
   .product-card,
   .detail-image img {
