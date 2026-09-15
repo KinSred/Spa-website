@@ -28,7 +28,11 @@ import {
   type CheckoutDraft,
   type CheckoutState,
 } from "./components/CartDrawer";
-import { BookingDialog, type BookingState } from "./components/BookingDialog";
+import {
+  BookingDialog,
+  type BookingOpenOptions,
+  type BookingState,
+} from "./components/BookingDialog";
 import {
   AdvisorChat,
   type ChatMessage,
@@ -527,7 +531,7 @@ export default function SpaCommerce() {
   const openBooking = (options?: { opener?: HTMLElement | null } | unknown) => {
     const explicitOpener =
       options && typeof options === "object" && "opener" in options
-        ? (options as { opener?: HTMLElement | null }).opener
+        ? (options as BookingOpenOptions).opener
         : options instanceof HTMLElement
           ? options
           : null;

@@ -68,7 +68,7 @@ export function Footer({ mobileOpen, onOpenBooking }: FooterProps) {
             <li><a href="#journal">Góc nhìn chuyên đề</a></li>
             <li><a href="#journal">Chăm sóc màng ẩm tự nhiên</a></li>
             <li><a href="#journal">Nguyên tắc tối giản hoạt chất</a></li>
-            <li><span>Đồng hành cá nhân hóa</span></li>
+            <li><span>Hướng dẫn chăm sóc tiếp nối</span></li>
           </ul>
         </div>
       </div>

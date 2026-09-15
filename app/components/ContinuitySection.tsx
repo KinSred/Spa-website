@@ -20,7 +20,7 @@ export function ContinuitySection() {
         </p>
       </div>
 
-      <div className="continuity-timeline" aria-label="Ba giai đoạn đồng hành">
+      <div className="continuity-timeline" aria-label="Ba giai đoạn chăm sóc tiếp nối">
         <article className="timeline-stage">
           <div className="stage-top">
             <span className="stage-index">01</span>
@@ -29,13 +29,13 @@ export function ContinuitySection() {
             </div>
           </div>
           <span className="stage-kicker">GIAI ĐOẠN I · LỌC ROUTINE</span>
-          <h3 className="stage-heading">Chẩn đoán thực tế</h3>
+          <h3 className="stage-heading">Quan sát tình trạng da &amp; routine hiện tại</h3>
           <p className="stage-body">
             Xem xét tình trạng hàng rào bảo vệ da và các sản phẩm đang dùng. Chỉ
             giữ lại những bước thực sự mang lại giá trị phục hồi, loại bỏ thói
             quen chạy theo hoạt chất mạnh.
           </p>
-          <span className="stage-badge">Tại nhà hoặc soi da</span>
+          <span className="stage-badge">Tại nhà hoặc atelier</span>
         </article>
 
         <div className="timeline-connector" aria-hidden="true">
@@ -72,13 +72,13 @@ export function ContinuitySection() {
               <ShieldCheck size={20} />
             </div>
           </div>
-          <span className="stage-kicker">GIAI ĐOẠN III · ĐỒNG HÀNH</span>
-          <h3 className="stage-heading">Tư vấn tiếp nối</h3>
+          <span className="stage-kicker">GIAI ĐOẠN III · TIẾP NỐI</span>
+          <h3 className="stage-heading">Hướng dẫn chăm sóc tiếp nối</h3>
           <p className="stage-body">
             Chuyên viên ghi nhận cảm nhận của bạn sau buổi trị liệu để định hướng
             chu trình dưỡng tại nhà phù hợp, hỗ trợ làn da duy trì sự ổn định lâu dài.
           </p>
-          <span className="stage-badge">Đồng hành tiếp nối</span>
+          <span className="stage-badge">Chăm sóc tiếp nối</span>
         </article>
       </div>
     </section>

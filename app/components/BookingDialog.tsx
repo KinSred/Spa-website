@@ -11,6 +11,8 @@ import {
 
 export type BookingState = "idle" | "submitting" | "confirmed";
 
+export type BookingOpenOptions = { opener?: HTMLElement | null };
+
 export const CANONICAL_TIME_SLOTS = [
   "09:00–11:00",
   "11:00–13:00",

@@ -82,7 +82,7 @@ export function Hero({ onOpenBooking }: HeroProps) {
             </div>
             <div>
               <Calendar size={16} aria-hidden="true" />
-              <span>Đồng hành chăm sóc cá nhân hóa</span>
+              <span>Hướng dẫn chăm sóc tiếp nối</span>
             </div>
           </div>
         </div>

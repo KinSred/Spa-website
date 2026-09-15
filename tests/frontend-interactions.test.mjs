@@ -509,7 +509,7 @@ test("Restrained TĨNH scrollbars and stable header scroll morph in liquid.css",
   // Stable header scroll morph: smooth announcement collapse without translateY on compact nav-inner
   assert.match(liquidCss, /\.site-header\.is-compact \.announcement\s*\{[\s\S]*?max-height:\s*0/);
   assert.match(liquidCss, /\.site-header\.is-compact \.announcement\s*\{[\s\S]*?opacity:\s*0/);
-  assert.match(liquidCss, /\.site-header\.is-compact \.nav-inner\s*\{[^{}]*background:\s*var\(--color-glass-strong\)/);
+  assert.match(liquidCss, /\.site-header\.is-compact \.nav-inner\s*\{[^{}]*background:\s*var\(--color-surface\)/);
   assert.doesNotMatch(liquidCss, /\.site-header\.is-compact \.nav-inner\s*\{[^{}]*transform:\s*translateY/);
 });
 
